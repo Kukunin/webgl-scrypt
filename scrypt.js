@@ -137,23 +137,24 @@ $(function() {
 
     console.log("Input is " + header_bin);
 
-    padded_header_bin = ___.hex_to_uint16_array("02000000ff1fd715a981626682fd8d73afda09d825722d6ba5f665b1be6ed400242f7b650c3623c0f087fefdeefcd4c84d916a511551425fabaf52d55d5596498ba5f869f139d55346e2021b00039bfc800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000280");
-    console.log("Padded input is " + padded_header_bin);
+    var header_hash = "54e2fc0ab1d0c524d24ee13c0dee324776c878d419344ac35b995640eab1371c";
+    var header_hash_bin = ___.hex_to_uint16_array("54e2fc0ab1d0c524d24ee13c0dee324776c878d419344ac35b995640eab1371c");
+    console.log("SHA256 is " + header_hash);
 
     var buf = new Uint8Array(threads * 1 * 4);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     gl.readPixels(0, 0, threads, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
 
     var result = [];
-    for(var i = 0; i < 127; i+=2) {
+    for(var i = 0; i < 31; i+=2) {
         result.push((buf[i]*256) + buf[i+1]);
     }
 
-    console.log("Result is " + result);
+    console.log("Result is " + ___.uint16_array_to_hex(result));
 
     var matched = (function() {
-        for(var i = 0; i < padded_header_bin.length; i++) {
-            if( result[i] != padded_header_bin[i] ) {
+        for(var i = 0; i < header_hash_bin.length; i++) {
+            if( result[i] != header_hash_bin[i] ) {
                 return false;
             }
         }
