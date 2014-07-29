@@ -81,7 +81,7 @@ $(function() {
     var locations = setupShaders(gl);
 
     console.log("Headers is " + header);
-    var header_bin = ___.hex_to_uint8_array(header);
+    var header_bin = ___.hex_to_uint16_array(header);
     gl.uniform2fv(locations.header, header_bin);
 
     console.log("Nonce is " + nonce);
@@ -89,24 +89,22 @@ $(function() {
     gl.uniform2fv(locations.nonce, nonce_bin);
     console.log(nonce_bin);
 
-    //Fill nonce to header_bin
-    for(var i = 0; i < 4; i++) {
-        header_bin[76 + i] = (nonce >>> i*8) & 0xff;
-    }
+    //Fill nonce to header_bin. Convert byte order
+    header_bin[38] = (nonce_bin[3]*256) + nonce_bin[2];
+    header_bin[39] = (nonce_bin[1]*256) + nonce_bin[0];
+
     console.log("Input is " + header_bin);
 
-    padded_header_bin = ___.hex_to_uint8_array("02000000ff1fd715a981626682fd8d73afda09d825722d6ba5f665b1be6ed400242f7b650c3623c0f087fefdeefcd4c84d916a511551425fabaf52d55d5596498ba5f869f139d55346e2021b00039bfc800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000280");
+    padded_header_bin = ___.hex_to_uint16_array("02000000ff1fd715a981626682fd8d73afda09d825722d6ba5f665b1be6ed400242f7b650c3623c0f087fefdeefcd4c84d916a511551425fabaf52d55d5596498ba5f869f139d55346e2021b00039bfc800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000280");
     console.log("Padded input is " + padded_header_bin);
-
 
     var buf = new Uint8Array(threads * 1 * 4);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     gl.readPixels(0, 0, threads, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
 
     var result = [];
-    for(var i = 0; i < 255; i+=4) {
-        result.push(buf[i]);
-        result.push(buf[i+1]);
+    for(var i = 0; i < 127; i+=2) {
+        result.push((buf[i]*256) + buf[i+1]);
     }
 
     console.log("Result is " + result);
