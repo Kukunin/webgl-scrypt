@@ -18,6 +18,11 @@ precision mediump float;
 #define POW_2_12 4096.0
 #define POW_2_13 8192.0
 
+uniform vec2 base_nonce[2];
+uniform vec2 header[20];	/* Header of the block */
+uniform vec2 H[8];
+uniform vec2 K[64];
+
 /* Common functions */
 vec4 toRGBA(vec2 arg) {
     float V = float(arg.x);
@@ -172,10 +177,53 @@ void pad_the_header(out vec2 P[32], vec2 header[20]) {
     P[31] = vec2(0., 640.);
 }
 
-uniform vec2 base_nonce[2];
-uniform vec2 header[20];	/* Header of the block */
-uniform vec2 H[8];
-uniform vec2 K[64];
+/* One of two SHA256 rounds
+* w should be already filled with 16 words from message
+* t should be already eq to current hash
+* t will be equal to newly generated hash
+*/
+void sha256_round(inout vec2 w[64], inout vec2 t[8], out vec2 hash[8]) {
+    vec2 t1, t2;
+    vec2 _s0,_maj,_t2,_s1,_ch, _t1;
+    for (int i = 0; i < 64; i++) {
+        if( i > 15 ) {
+            w[i] = blend(w[i-16], w[i-15], w[i-7], w[i-2]);
+        }
+
+        _s0 = e0(t[0]);
+        _maj = maj(t[0],t[1],t[2]);
+        _t2 = safe_add(_s0, _maj);
+        _s1 = e1(t[4]);
+        _ch = ch(t[4], t[5], t[6]);
+        _t1 = safe_add(safe_add(safe_add(safe_add(t[7], _s1), _ch), K[i]), w[i]);
+
+        t[7] = t[6]; t[6] = t[5]; t[5] = t[4];
+        t[4] = safe_add(t[3], _t1);
+        t[3] = t[2]; t[2] = t[1]; t[1] = t[0];
+        t[0] = safe_add(_t1, _t2);
+    }
+    for (int i = 0; i < 8; i++) {
+        hash[i] = safe_add(t[i], hash[i]);
+        t[i] = hash[i];
+    }
+}
+
+void sha256(in vec2 P[32], out vec2 hash[8]) {
+    vec2 w[64]; //work
+    /* Temporary variables */
+    vec2 t[8];  //state
+
+    for (int i = 0; i < 8; i++) {
+        hash[i] = H[i];
+        t[i] = hash[i];
+    }
+
+    for (int i = 0; i < 16; i++) { w[i] = P[i]; }
+    sha256_round(w, t, hash);
+
+    for (int i = 0; i < 16; i++) { w[i] = P[i+16]; }
+    sha256_round(w, t, hash);
+}
 
 void main () {
     /* Chunk of debug code to ouput the full result in different pixels */
@@ -193,67 +241,7 @@ void main () {
     vec2 P[32]; /* Padded SHA-256 message */
     pad_the_header(P, nonced_header);
 
-    vec2 w[64]; //work
-    /* Temporary variables */
-    vec2 t[8];  //state
-    vec2 t1, t2;
-    vec2 _s0,_maj,_t2,_s1,_ch, _t1;
-
-    for (int i = 0; i < 8; i++) {
-        key_hash[i] = H[i];
-        t[i] = key_hash[i];
-    }
-
-    /* Start first round */
-    for (int i = 0; i < 64; i++) {
-        if( i < 16 ) {
-            w[i] = P[i];
-        } else {
-            w[i] = blend(w[i-16], w[i-15], w[i-7], w[i-2]);
-        }
-
-        _s0 = e0(t[0]);
-        _maj = maj(t[0],t[1],t[2]);
-        _t2 = safe_add(_s0, _maj);
-        _s1 = e1(t[4]);
-        _ch = ch(t[4], t[5], t[6]);
-        _t1 = safe_add(safe_add(safe_add(safe_add(t[7], _s1), _ch), K[i]), w[i]);
-
-        t[7] = t[6]; t[6] = t[5]; t[5] = t[4];
-        t[4] = safe_add(t[3], _t1);
-        t[3] = t[2]; t[2] = t[1]; t[1] = t[0];
-        t[0] = safe_add(_t1, _t2);
-    }
-
-    for (int i = 0; i < 8; i++) {
-        key_hash[i] = safe_add(t[i], key_hash[i]);
-        t[i] = key_hash[i];
-    }
-
-    /* Second round */
-    for (int i = 0; i < 64; i++) {
-        if( i < 16 ) {
-            w[i] = P[i+16];
-        } else {
-            w[i] = blend(w[i-16], w[i-15], w[i-7], w[i-2]);
-        }
-
-        _s0 = e0(t[0]);
-        _maj = maj(t[0],t[1],t[2]);
-        _t2 = safe_add(_s0, _maj);
-        _s1 = e1(t[4]);
-        _ch = ch(t[4], t[5], t[6]);
-        _t1 = safe_add(safe_add(safe_add(safe_add(t[7], _s1), _ch), K[i]), w[i]);
-
-        t[7] = t[6]; t[6] = t[5]; t[5] = t[4];
-        t[4] = safe_add(t[3], _t1);
-        t[3] = t[2]; t[2] = t[1]; t[1] = t[0];
-        t[0] = safe_add(_t1, _t2);
-    }
-
-    for (int i = 0; i < 8; i++) {
-        key_hash[i] = safe_add(t[i], key_hash[i]);
-    }
+    sha256(P, key_hash);
 
     //Workaround for B[x]
     for(int i = 0; i < 8; i++) {
