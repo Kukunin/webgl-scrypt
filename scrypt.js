@@ -71,11 +71,18 @@ function setupShaders(gl) {
 
     gl.vertexAttribPointer(vertexPositionLoc, 2, gl.FLOAT, false, 0, 0);
 
-    return {};
+    return {
+        header: gl.getUniformLocation(program, "header")
+    };
 }
 $(function() {
     var gl = initializeGl();
     var locations = setupShaders(gl);
+
+    console.log(header);
+    var header_bin = ___.hex_to_uint8_array(header);
+    console.log(header_bin);
+    gl.uniform2fv(locations.header, header_bin);
 
     var buf = new Uint8Array(threads * 1 * 4);
 
@@ -83,5 +90,19 @@ $(function() {
 
     gl.readPixels(0, 0, threads, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
 
-    console.log(buf);
+    var result = [];
+    for(var i = 0; i < 159; i+=4) {
+        result.push(buf[i]);
+        result.push(buf[i+1]);
+    }
+
+    var matched = (function() {
+        for(var i = 0; i < 79; i++) {
+            if( result[i] != header_bin[i] ) {
+                return false;
+            }
+        }
+        return true;
+    })();
+    console.log(matched ? "Matched" : "Don't matched");
 });
