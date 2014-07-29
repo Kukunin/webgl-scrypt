@@ -72,22 +72,32 @@ function setupShaders(gl) {
     gl.vertexAttribPointer(vertexPositionLoc, 2, gl.FLOAT, false, 0, 0);
 
     return {
-        header: gl.getUniformLocation(program, "header")
+        header: gl.getUniformLocation(program, "header"),
+        nonce: gl.getUniformLocation(program, "base_nonce")
     };
 }
 $(function() {
     var gl = initializeGl();
     var locations = setupShaders(gl);
 
-    console.log(header);
+    console.log("Headers is " + header);
     var header_bin = ___.hex_to_uint8_array(header);
-    console.log(header_bin);
     gl.uniform2fv(locations.header, header_bin);
 
+    console.log("Nonce is " + nonce);
+    var nonce_bin = ___.hex_to_uint8_array(nonce.toString(16));
+    gl.uniform2fv(locations.nonce, nonce_bin);
+    console.log(nonce_bin);
+
+    //Fill nonce to header_bin
+    for(var i = 0; i < 4; i++) {
+        header_bin[76 + i] = nonce_bin[i];
+    }
+    console.log("Input is " + header_bin);
+
+
     var buf = new Uint8Array(threads * 1 * 4);
-
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-
     gl.readPixels(0, 0, threads, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
 
     var result = [];
@@ -95,6 +105,8 @@ $(function() {
         result.push(buf[i]);
         result.push(buf[i+1]);
     }
+
+    console.log("Result is " + result);
 
     var matched = (function() {
         for(var i = 0; i < 79; i++) {
