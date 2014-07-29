@@ -91,9 +91,12 @@ $(function() {
 
     //Fill nonce to header_bin
     for(var i = 0; i < 4; i++) {
-        header_bin[76 + i] = nonce_bin[i];
+        header_bin[76 + i] = (nonce >>> i*8) & 0xff;
     }
     console.log("Input is " + header_bin);
+
+    padded_header_bin = ___.hex_to_uint8_array("02000000ff1fd715a981626682fd8d73afda09d825722d6ba5f665b1be6ed400242f7b650c3623c0f087fefdeefcd4c84d916a511551425fabaf52d55d5596498ba5f869f139d55346e2021b00039bfc800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000280");
+    console.log("Padded input is " + padded_header_bin);
 
 
     var buf = new Uint8Array(threads * 1 * 4);
@@ -101,7 +104,7 @@ $(function() {
     gl.readPixels(0, 0, threads, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
 
     var result = [];
-    for(var i = 0; i < 159; i+=4) {
+    for(var i = 0; i < 255; i+=4) {
         result.push(buf[i]);
         result.push(buf[i+1]);
     }
@@ -109,8 +112,8 @@ $(function() {
     console.log("Result is " + result);
 
     var matched = (function() {
-        for(var i = 0; i < 79; i++) {
-            if( result[i] != header_bin[i] ) {
+        for(var i = 0; i < padded_header_bin.length; i++) {
+            if( result[i] != padded_header_bin[i] ) {
                 return false;
             }
         }
