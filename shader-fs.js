@@ -40,6 +40,8 @@ void pad_the_header(out vec2 P[32], vec2 header[20]) {
 
 uniform vec2 base_nonce[2];
 uniform vec2 header[20];	/* Header of the block */
+uniform vec2 H[8];
+uniform vec2 K[64];
 
 void main () {
     /* Chunk of debug code to ouput the full result in different pixels */
