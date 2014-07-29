@@ -193,107 +193,72 @@ void main () {
     vec2 P[32]; /* Padded SHA-256 message */
     pad_the_header(P, nonced_header);
 
-    vec2 tmp[8];   //state
     vec2 w[64]; //work
     /* Temporary variables */
-    vec2 a, b, c, d, e, f, g, h;
+    vec2 t[8];  //state
     vec2 t1, t2;
     vec2 _s0,_maj,_t2,_s1,_ch, _t1;
 
     for (int i = 0; i < 8; i++) {
-        tmp[i] = H[i];
+        key_hash[i] = H[i];
+        t[i] = key_hash[i];
     }
 
     /* Start first round */
-    /* Fill the work array */
-    for (int i = 0; i < 16; i++) {
-        w[i] = P[i];
-    }
-    for (int i = 16; i < 64; ++i) {
-        w[i] = blend(w[i-16], w[i-15], w[i-7], w[i-2]);
-    }
-
-    a = tmp[0];
-    b = tmp[1];
-    c = tmp[2];
-    d = tmp[3];
-    e = tmp[4];
-    f = tmp[5];
-    g = tmp[6];
-    h = tmp[7];
-
     for (int i = 0; i < 64; i++) {
-        _s0 = e0(a);
-        _maj = maj(a,b,c);
+        if( i < 16 ) {
+            w[i] = P[i];
+        } else {
+            w[i] = blend(w[i-16], w[i-15], w[i-7], w[i-2]);
+        }
+
+        _s0 = e0(t[0]);
+        _maj = maj(t[0],t[1],t[2]);
         _t2 = safe_add(_s0, _maj);
-        _s1 = e1(e);
-        _ch = ch(e, f, g);
-        _t1 = safe_add(safe_add(safe_add(safe_add(h, _s1), _ch), K[i]), w[i]);
+        _s1 = e1(t[4]);
+        _ch = ch(t[4], t[5], t[6]);
+        _t1 = safe_add(safe_add(safe_add(safe_add(t[7], _s1), _ch), K[i]), w[i]);
 
-        h = g; g = f; f = e;
-        e = safe_add(d, _t1);
-        d = c; c = b; b = a;
-        a = safe_add(_t1, _t2);
+        t[7] = t[6]; t[6] = t[5]; t[5] = t[4];
+        t[4] = safe_add(t[3], _t1);
+        t[3] = t[2]; t[2] = t[1]; t[1] = t[0];
+        t[0] = safe_add(_t1, _t2);
     }
-
-    tmp[0] = safe_add(a, tmp[0]);
-    tmp[1] = safe_add(b, tmp[1]);
-    tmp[2] = safe_add(c, tmp[2]);
-    tmp[3] = safe_add(d, tmp[3]);
-    tmp[4] = safe_add(e, tmp[4]);
-    tmp[5] = safe_add(f, tmp[5]);
-    tmp[6] = safe_add(g, tmp[6]);
-    tmp[7] = safe_add(h, tmp[7]);
-
-//     /* Second round */
-//     /* Fill the work array */
-    for (int i = 0; i < 16; i++) {
-        w[i] = P[16+i];
-    }
-    for (int i = 16; i < 64; ++i) {
-        w[i] = blend(w[i-16], w[i-15], w[i-7], w[i-2]);
-    }
-
-    a = tmp[0];
-    b = tmp[1];
-    c = tmp[2];
-    d = tmp[3];
-    e = tmp[4];
-    f = tmp[5];
-    g = tmp[6];
-    h = tmp[7];
-
-    for (int i = 0; i < 64; i++) {
-        _s0 = e0(a);
-        _maj = maj(a,b,c);
-        _t2 = safe_add(_s0, _maj);
-        _s1 = e1(e);
-        _ch = ch(e, f, g);
-        _t1 = safe_add(safe_add(safe_add(safe_add(h, _s1), _ch), K[i]), w[i]);
-
-        h = g; g = f; f = e;
-        e = safe_add(d, _t1);
-        d = c; c = b; b = a;
-        a = safe_add(_t1, _t2);
-    }
-
-    tmp[0] = safe_add(a, tmp[0]);
-    tmp[1] = safe_add(b, tmp[1]);
-    tmp[2] = safe_add(c, tmp[2]);
-    tmp[3] = safe_add(d, tmp[3]);
-    tmp[4] = safe_add(e, tmp[4]);
-    tmp[5] = safe_add(f, tmp[5]);
-    tmp[6] = safe_add(g, tmp[6]);
-    tmp[7] = safe_add(h, tmp[7]);
 
     for (int i = 0; i < 8; i++) {
-        key_hash[i] = tmp[i];
+        key_hash[i] = safe_add(t[i], key_hash[i]);
+        t[i] = key_hash[i];
+    }
+
+    /* Second round */
+    for (int i = 0; i < 64; i++) {
+        if( i < 16 ) {
+            w[i] = P[i+16];
+        } else {
+            w[i] = blend(w[i-16], w[i-15], w[i-7], w[i-2]);
+        }
+
+        _s0 = e0(t[0]);
+        _maj = maj(t[0],t[1],t[2]);
+        _t2 = safe_add(_s0, _maj);
+        _s1 = e1(t[4]);
+        _ch = ch(t[4], t[5], t[6]);
+        _t1 = safe_add(safe_add(safe_add(safe_add(t[7], _s1), _ch), K[i]), w[i]);
+
+        t[7] = t[6]; t[6] = t[5]; t[5] = t[4];
+        t[4] = safe_add(t[3], _t1);
+        t[3] = t[2]; t[2] = t[1]; t[1] = t[0];
+        t[0] = safe_add(_t1, _t2);
+    }
+
+    for (int i = 0; i < 8; i++) {
+        key_hash[i] = safe_add(t[i], key_hash[i]);
     }
 
     //Workaround for B[x]
     for(int i = 0; i < 8; i++) {
         if(i == x) {
-            gl_FragColor = toRGBA(tmp[i]);
+            gl_FragColor = toRGBA(key_hash[i]);
         }
     }
 }
