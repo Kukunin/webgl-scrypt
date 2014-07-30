@@ -4,6 +4,9 @@ precision mediump float;
 #define Ox10000 65536.0
 #define Ox8000  32768.0
 
+#define Ox5c5c 23644.0
+#define Ox3636 13878.0
+
 #define POW_2_01 2.0
 #define POW_2_02 4.0
 #define POW_2_03 8.0
@@ -234,6 +237,8 @@ void main () {
     }
 
     vec2 key_hash[8]; /* Our SHA-256 hash */
+    vec2 i_key[16];
+    vec2 o_key[16];
 
     vec2 nonced_header[20]; /* Header with nonce */
     set_nonce_to_header(nonced_header, header, base_nonce);
@@ -241,7 +246,22 @@ void main () {
     vec2 P[32]; /* Padded SHA-256 message */
     pad_the_header(P, nonced_header);
 
+    /* Hash HMAC secret key */
     sha256(P, key_hash);
+
+    /* Make iKey and oKey */
+    for(int i = 0; i < 16; i++) {
+        if (i < 8) {
+            i_key[i] = key_hash[i];
+            o_key[i] = key_hash[i];
+            i_key[i] = xor(i_key[i], vec2(Ox3636, Ox3636));
+            o_key[i] = xor(o_key[i], vec2(Ox5c5c, Ox5c5c));
+        } else {
+            i_key[i] = vec2(Ox3636, Ox3636);
+            o_key[i] = vec2(Ox5c5c, Ox5c5c);
+        }
+    }
+
 
     //Workaround for B[x]
     for(int i = 0; i < 8; i++) {
