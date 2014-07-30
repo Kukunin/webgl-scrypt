@@ -21,11 +21,6 @@ precision mediump float;
 #define POW_2_12 4096.0
 #define POW_2_13 8192.0
 
-uniform vec2 base_nonce[2];
-uniform vec2 header[20];	/* Header of the block */
-uniform vec2 H[8];
-uniform vec2 K[64];
-
 /* Common functions */
 vec4 toRGBA(vec2 arg) {
     float V = float(arg.x);
@@ -155,6 +150,19 @@ vec2 maj (vec2 a, vec2 b, vec2 c)
 	return xor (xor (and (a, b), and (a, c)), and (b, c));
 }
 
+/* Variables */
+uniform vec2 base_nonce[2];
+uniform vec2 header[20];	/* Header of the block */
+uniform vec2 H[8];
+uniform vec2 K[64];
+
+/* Temporary variables for SHA256 */
+vec2 w[64]; //work
+/* Temporary variables */
+vec2 t[8];  //state
+vec2 t1, t2;
+vec2 _s0,_maj,_t2,_s1,_ch, _t1;
+
 /* User defined function */
 void set_nonce_to_header(out vec2 nonced_header[20], vec2 header[20], vec2 nonce[2]) {
     /* Copy header without nonce */
@@ -186,8 +194,6 @@ void pad_the_header(out vec2 P[32], vec2 header[20]) {
 * t will be equal to newly generated hash
 */
 void sha256_round(inout vec2 w[64], inout vec2 t[8], out vec2 hash[8]) {
-    vec2 t1, t2;
-    vec2 _s0,_maj,_t2,_s1,_ch, _t1;
     for (int i = 0; i < 64; i++) {
         if( i > 15 ) {
             w[i] = blend(w[i-16], w[i-15], w[i-7], w[i-2]);
@@ -212,10 +218,6 @@ void sha256_round(inout vec2 w[64], inout vec2 t[8], out vec2 hash[8]) {
 }
 
 void sha256(in vec2 P[32], out vec2 hash[8]) {
-    vec2 w[64]; //work
-    /* Temporary variables */
-    vec2 t[8];  //state
-
     for (int i = 0; i < 8; i++) {
         hash[i] = H[i];
         t[i] = hash[i];
@@ -238,6 +240,7 @@ void main () {
 
     vec2 key_hash[8]; /* Our SHA-256 hash */
     vec2 i_key[16];
+    vec2 i_key_hash[8];
     vec2 o_key[16];
 
     vec2 nonced_header[20]; /* Header with nonce */
@@ -261,6 +264,15 @@ void main () {
             o_key[i] = vec2(Ox5c5c, Ox5c5c);
         }
     }
+
+    /* SHA256 hash of iKey */
+    for (int i = 0; i < 8; i++) {
+        i_key_hash[i] = H[i];
+        t[i] = i_key_hash[i];
+    }
+
+    for (int i = 0; i < 16; i++) { w[i] = i_key[i]; }
+    sha256_round(w, t, i_key_hash);
 
 
     //Workaround for B[x]
