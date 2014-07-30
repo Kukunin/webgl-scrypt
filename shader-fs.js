@@ -22,7 +22,7 @@ precision mediump float;
 #define POW_2_13 8192.0
 
 /* Common functions */
-vec4 toRGBA(vec2 arg) {
+vec4 toRGBA(in vec2 arg) {
     float V = float(arg.x);
     float R = floor(V / pow(2.0, 8.0));
     V -= R * pow(2.0, 8.0);
@@ -37,7 +37,7 @@ vec4 toRGBA(vec2 arg) {
 /* Math functions */
 
 /* Note: shift should be a power of two, e.g. to shift 3 steps, use 2^3. */
-vec2 sftr (vec2 a, float shift)
+vec2 sftr (in vec2 a, in float shift)
 {
     vec2 ret = a / shift;
     ret = vec2(floor (ret.x), floor(ret.y) + fract(ret.x) * float(Ox10000));
@@ -45,14 +45,14 @@ vec2 sftr (vec2 a, float shift)
 }
 
 /* Note: shift should be a power of two, e.g. to rotate 3 steps, use 2^3. */
-vec2 rotr (vec2 a, float shift)
+vec2 rotr (in vec2 a, in float shift)
 {
     vec2 ret = a / shift;
     ret = floor(ret) + fract(ret.yx) * float(Ox10000);
     return ret;
 }
 
-float xor16 (float a, float b)
+float xor16 (in float a, in float b)
 {
 	float ret = float(0);
     float fact = float(Ox8000);
@@ -71,12 +71,12 @@ float xor16 (float a, float b)
 	return ret;
 }
 
-vec2 xor (vec2 a, vec2 b)
+vec2 xor (in vec2 a, in vec2 b)
 {
 	return vec2 (xor16 (a.x, b.x), xor16 (a.y, b.y));
 }
 
-float and16 (float a, float b)
+float and16 (in float a, in float b)
 {
 	float ret = float(0);
 	float fact = float (Ox8000);
@@ -97,18 +97,18 @@ float and16 (float a, float b)
 	return ret;
 }
 
-vec2 and (vec2 a, vec2 b)
+vec2 and (in vec2 a, in vec2 b)
 {
       return vec2 (and16 (a.x, b.x), and16 (a.y, b.y));
 }
 
 /* Logical complement ("not") */
-vec2 cpl (vec2 a)
+vec2 cpl (in vec2 a)
 {
       return vec2 (float (Ox10000), float (Ox10000)) - a - vec2(1.0, 1.0);
 }
 
-vec2 safe_add (vec2 a, vec2 b)
+vec2 safe_add (in vec2 a, in vec2 b)
 {
     vec2 ret;
     ret.x = a.x + b.x;
@@ -123,29 +123,29 @@ vec2 safe_add (vec2 a, vec2 b)
     return ret;
 }
 
-vec2 blend (vec2 m16, vec2 m15, vec2 m07, vec2 m02)
+vec2 blend (in vec2 m16, in vec2 m15, in vec2 m07, in vec2 m02)
 {
     vec2 s0 = xor (rotr (m15   , POW_2_07), xor (rotr (m15.yx, POW_2_02), sftr (m15, POW_2_03)));
     vec2 s1 = xor (rotr (m02.yx, POW_2_01), xor (rotr (m02.yx, POW_2_03), sftr (m02, POW_2_10)));
     return safe_add (safe_add (m16, s0), safe_add (m07, s1));
 }
 
-vec2 e0 (vec2 a)
+vec2 e0 (in vec2 a)
 {
 	return xor (rotr (a, POW_2_02), xor (rotr (a, POW_2_13), rotr (a.yx, POW_2_06)));
 }
 
-vec2 e1 (vec2 a)
+vec2 e1 (in vec2 a)
 {
 	return xor (rotr (a, POW_2_06), xor (rotr (a, POW_2_11), rotr (a.yx, POW_2_09)));
 }
 
-vec2 ch (vec2 a, vec2 b, vec2 c)
+vec2 ch (in vec2 a, in vec2 b, in vec2 c)
 {
 	return xor (and (a, b), and (cpl (a), c));
 }
 
-vec2 maj (vec2 a, vec2 b, vec2 c)
+vec2 maj (in vec2 a, in vec2 b, in vec2 c)
 {
 	return xor (xor (and (a, b), and (a, c)), and (b, c));
 }
@@ -164,15 +164,15 @@ vec2 t1, t2;
 vec2 _s0,_maj,_t2,_s1,_ch, _t1;
 
 /* User defined function */
-void set_nonce_to_header(out vec2 nonced_header[20], vec2 header[20], vec2 nonce[2]) {
+void set_nonce_to_header(out vec2 nonced_header[20] ) {
     /* Copy header without nonce */
     for(int i = 0; i < 19; i++) {
         nonced_header[i] = header[i];
     }
     /* Set nonce */
     nonced_header[19] = vec2(
-        (nonce[1].y*256.) + nonce[1].x,
-        (nonce[0].y*256.) + nonce[0].x
+        (base_nonce[1].y*256.) + base_nonce[1].x,
+        (base_nonce[0].y*256.) + base_nonce[0].x
     );
 }
 
@@ -193,7 +193,7 @@ void pad_the_header(out vec2 P[32], vec2 header[20]) {
 * t should be already eq to current hash
 * t will be equal to newly generated hash
 */
-void sha256_round(inout vec2 w[64], inout vec2 t[8], out vec2 hash[8]) {
+void sha256_round(inout vec2 w[64], inout vec2 t[8], inout vec2 hash[8]) {
     for (int i = 0; i < 64; i++) {
         if( i > 15 ) {
             w[i] = blend(w[i-16], w[i-15], w[i-7], w[i-2]);
@@ -217,7 +217,7 @@ void sha256_round(inout vec2 w[64], inout vec2 t[8], out vec2 hash[8]) {
     }
 }
 
-void sha256(in vec2 P[32], out vec2 hash[8]) {
+void sha256(in vec2 P[32], inout vec2 hash[8]) {
     for (int i = 0; i < 8; i++) {
         hash[i] = H[i];
         t[i] = hash[i];
@@ -244,7 +244,7 @@ void main () {
     vec2 o_key[16];
 
     vec2 nonced_header[20]; /* Header with nonce */
-    set_nonce_to_header(nonced_header, header, base_nonce);
+    set_nonce_to_header(nonced_header);
 
     vec2 P[32]; /* Padded SHA-256 message */
     pad_the_header(P, nonced_header);
