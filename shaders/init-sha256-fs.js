@@ -13,7 +13,7 @@ vec4 toRGBA(vec2 arg) {
 }
 
 uniform vec2 H[8];
-uniform vec2 header[20];
+uniform vec2 initial[16];
 
 void main () {
     vec4 c = gl_FragCoord - 0.5;
@@ -35,7 +35,7 @@ void main () {
     } else if ( offset < 24 ) {
         for(int i = 8; i < 24; i++) {
             if ( i == offset ) {
-                gl_FragColor = toRGBA(header[i-8]);
+                gl_FragColor = toRGBA(initial[i-8]);
             }
         }
     } else if ( offset >= 72 && offset < 80 ) {

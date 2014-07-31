@@ -33,12 +33,12 @@ function loadResource(n) {
     return x;
 };
 
-function setupShaders(gl) {
+function establishProgram(gl, vertex_shader, fragment_shader) {
     var program = gl.createProgram(),
         vShader = gl.createShader(gl.VERTEX_SHADER),
-        vShaderSource = loadResource("shader-vs.js"),
+        vShaderSource = loadResource(vertex_shader),
         fShader = gl.createShader(gl.FRAGMENT_SHADER),
-        fShaderSource = loadResource("shader-fs.js");
+        fShaderSource = loadResource(fragment_shader);
 
     gl.shaderSource(vShader, vShaderSource);
     gl.compileShader(vShader);
@@ -58,42 +58,10 @@ function setupShaders(gl) {
     if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
         throw gl.getProgramInfoLog(program);
     }
-    gl.useProgram(program);
 
-    //Convert pixel coordinate to vertex (-1, 1)
-    var x = 32;
-    var nX = x / textureSize;
-    var vX = (nX * 2) - 1
-
-    var y = 2;
-    var nY = y / textureSize;
-    var vY = (nY * 2) - 1;
-//
-    var vertices = new Float32Array([
-        1,  1,
-       -1,  1,
-        1, -1,
-       -1, -1
-        //  vX, -1,
-        // -1, -1,
-        //  vX, vY,
-        // -1, vY
-    ]), //Square to cover whole canvas
-        vertexPositionLoc = gl.getAttribLocation(program, "aPosition");
-    gl.enableVertexAttribArray(vertexPositionLoc);
-
-    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
-    gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
-
-    gl.vertexAttribPointer(vertexPositionLoc, 2, gl.FLOAT, false, 0, 0);
-
-    return {
-        header: gl.getUniformLocation(program, "header"),
-        nonce:  gl.getUniformLocation(program, "base_nonce"),
-        H:      gl.getUniformLocation(program, "H"),
-        K:      gl.getUniformLocation(program, "K")
-    };
+    return program;
 }
+
 var h =  [0x6a09, 0xe667, 0xbb67, 0xae85,
           0x3c6e, 0xf372, 0xa54f, 0xf53a,
           0x510e, 0x527f, 0x9b05, 0x688c,
@@ -131,38 +99,82 @@ var k =  [0x428a, 0x2f98, 0x7137, 0x4491,
           0x84c8, 0x7814, 0x8cc7, 0x0208,
           0x90be, 0xfffa, 0xa450, 0x6ceb,
           0xbef9, 0xa3f7, 0xc671, 0x78f2];
+
+function setupSquadMesh(gl) {
+    //Convert pixel coordinate to vertex (-1, 1)
+    var x = 32;
+    var nX = x / textureSize;
+    var vX = (nX * 2) - 1
+
+    var y = 2;
+    var nY = y / textureSize;
+    var vY = (nY * 2) - 1;
+//
+    var vertices = new Float32Array([
+        1,  1,
+       -1,  1,
+        1, -1,
+       -1, -1
+        //  vX, -1,
+        // -1, -1,
+        //  vX, vY,
+        // -1, vY
+    ]); //Square to cover whole canvas
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+    gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+}
+
+function initSHA256Program (gl) {
+    var program = establishProgram(gl, "shaders/default-vs.js", "shaders/init-sha256-fs.js");
+
+    var locations = {
+        H:       gl.getUniformLocation(program, "H"),
+        initial: gl.getUniformLocation(program, "initial")
+    };
+    var attributes = {
+        position: gl.getAttribLocation(program, "aPosition")
+    }
+
+
+    return {
+        P: program,
+        L: locations,
+        A: attributes,
+        toRender: function(initial) {
+            gl.useProgram(program);
+
+            gl.uniform2fv(locations.initial, initial);
+            gl.uniform2fv(locations.H, h);
+
+            gl.enableVertexAttribArray(attributes.position);
+            gl.vertexAttribPointer(attributes.position, 2, gl.FLOAT, false, 0, 0);
+        },
+        postRender: function() {
+            gl.disableVertexAttribArray(attributes.position);
+        }
+    };
+}
+
 $(function() {
     var gl = initializeGl();
-    var locations = setupShaders(gl);
-
-    gl.uniform2fv(locations.H, h);
-    gl.uniform2fv(locations.K, k);
+    setupSquadMesh(gl);
+    var programs = {
+        "init-sha256": initSHA256Program(gl)
+    }
 
     console.log("Headers is " + header);
     var header_bin = ___.hex_to_uint16_array(header);
-    gl.uniform2fv(locations.header, header_bin);
 
-    console.log("Nonce is " + nonce);
-    var nonce_bin = ___.hex_to_uint8_array(nonce.toString(16));
-    gl.uniform2fv(locations.nonce, nonce_bin);
-    console.log(nonce_bin);
-
-    //Fill nonce to header_bin. Convert byte order
-    header_bin[38] = (nonce_bin[3]*256) + nonce_bin[2];
-    header_bin[39] = (nonce_bin[1]*256) + nonce_bin[0];
-
-    console.log("Input is " + header_bin);
-
-    var header_hash = "54e2fc0ab1d0c524d24ee13c0dee324776c878d419344ac35b995640eab1371c";
-    var header_hash_bin = ___.hex_to_uint16_array("54e2fc0ab1d0c524d24ee13c0dee324776c878d419344ac35b995640eab1371c");
-    console.log("SHA256 is " + header_hash);
-
+    programs['init-sha256'].toRender(header_bin.slice(0, 32));
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-    var buf = new Uint8Array(64 * 1 * 4);
-    gl.readPixels(0, 0, 64, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+    programs['init-sha256'].postRender();
+
+    var buf = new Uint8Array(80 * 1 * 4);
+    gl.readPixels(0, 0, 80, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
 
     var result = [];
-    for(var i = 0; i < 64*4; i+=2) {
+    for(var i = 0; i < 80*4; i+=2) {
         result.push((buf[i]*256) + buf[i+1]);
     }
     console.log("Result is " + ___.uint16_array_to_hex(result));
