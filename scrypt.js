@@ -1,8 +1,8 @@
 function initializeGl() {
     canvas = document.createElement('canvas');
     if (debug || true) document.body.appendChild(canvas)
-    canvas.height = 1;
-    canvas.width = threads;
+    canvas.height = textureSize;
+    canvas.width = textureSize;
 
     var names = [ "webgl", "experimental-webgl", "moz-webgl", "webkit-3d" ],
         gl = null;
@@ -55,13 +55,29 @@ function setupShaders(gl) {
     gl.attachShader(program, fShader);
 
     gl.linkProgram(program);
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+        throw gl.getProgramInfoLog(program);
+    }
     gl.useProgram(program);
+
+    //Convert pixel coordinate to vertex (-1, 1)
+    var x = 32;
+    var nX = x / textureSize;
+    var vX = (nX * 2) - 1
+
+    var y = 2;
+    var nY = y / textureSize;
+    var vY = (nY * 2) - 1;
 //
     var vertices = new Float32Array([
-        1, 1,
-       -1, 1,
-        1,-1,
-       -1,-1
+        1,  1,
+       -1,  1,
+        1, -1,
+       -1, -1
+        //  vX, -1,
+        // -1, -1,
+        //  vX, vY,
+        // -1, vY
     ]), //Square to cover whole canvas
         vertexPositionLoc = gl.getAttribLocation(program, "aPosition");
     gl.enableVertexAttribArray(vertexPositionLoc);
@@ -141,24 +157,14 @@ $(function() {
     var header_hash_bin = ___.hex_to_uint16_array("54e2fc0ab1d0c524d24ee13c0dee324776c878d419344ac35b995640eab1371c");
     console.log("SHA256 is " + header_hash);
 
-    var buf = new Uint8Array(threads * 1 * 4);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-    gl.readPixels(0, 0, threads, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+    var buf = new Uint8Array(64 * 1 * 4);
+    gl.readPixels(0, 0, 64, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
 
     var result = [];
-    for(var i = 0; i < 31; i+=2) {
+    for(var i = 0; i < 64*4; i+=2) {
         result.push((buf[i]*256) + buf[i+1]);
     }
-
     console.log("Result is " + ___.uint16_array_to_hex(result));
 
-    var matched = (function() {
-        for(var i = 0; i < header_hash_bin.length; i++) {
-            if( result[i] != header_hash_bin[i] ) {
-                return false;
-            }
-        }
-        return true;
-    })();
-    console.log(matched ? "Matched" : "Don't matched");
 });
