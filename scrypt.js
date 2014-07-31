@@ -109,20 +109,61 @@ function establishProgram(vertex_shader, fragment_shader) {
 }
 
 function initFramebuffers() {
-    _.framebuffers.main = gl.createFramebuffer();
+    _.framebuffers.primary   = gl.createFramebuffer();
+    _.framebuffers.secondary = gl.createFramebuffer();
 }
 
 function initTextures() {
-
-    _.textures.fb = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, _.textures.fb);
+    //Init two texture for ping ponging
+    /* First texture */
+    _.textures.primary = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, _.textures.primary);
 
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, textureSize, textureSize, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
 
-    gl.bindFramebuffer(gl.FRAMEBUFFER, _.framebuffers.main);
-    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, _.textures.fb, 0);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, _.framebuffers.primary);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, _.textures.primary, 0);
+
+    /* Second texture */
+    _.textures.secondary = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, _.textures.secondary);
+
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, textureSize, textureSize, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, _.framebuffers.secondary);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, _.textures.secondary, 0);
+
+    (function() {
+        var pingpong = false;
+        _.textures.swap = function() {
+            if ( pingpong ) {
+                _.textures.setPrimary();
+            } else {
+                _.textures.setSecondary();
+            }
+        }
+        _.textures.setPrimary = function() {
+            gl.bindFramebuffer(gl.FRAMEBUFFER, _.framebuffers.secondary);
+
+            gl.activeTexture(gl.TEXTURE0);
+            gl.bindTexture(gl.TEXTURE_2D, _.textures.primary);
+
+            pingpong = false;
+        }
+
+        _.textures.setSecondary = function() {
+            gl.bindFramebuffer(gl.FRAMEBUFFER, _.framebuffers.primary);
+
+            gl.activeTexture(gl.TEXTURE0);
+            gl.bindTexture(gl.TEXTURE_2D, _.textures.secondary);
+
+            pingpong = true;
+        }
+    })();
 
     /* revert all to default */
     gl.bindTexture(gl.TEXTURE_2D, null);
@@ -220,8 +261,6 @@ function sha256RoundProgram() {
             gl.enableVertexAttribArray(attributes.position);
             gl.vertexAttribPointer(attributes.position, 2, gl.FLOAT, false, 0, 0);
 
-            gl.activeTexture(gl.TEXTURE0);
-            gl.bindTexture(gl.TEXTURE_2D, _.textures.fb);
             gl.uniform1i(locations.sampler, 0);
 
             gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
@@ -239,8 +278,8 @@ function printBuffer(buf, length) {
     return ___.uint16_array_to_hex(result);
 }
 
-function match(name, expect, actual) {
-    if ( expect == actual) {
+function match(name, expected, actual) {
+    if ( expected == actual) {
         console.log(name + " match");
     } else {
         console.log(name + " dismatch");
@@ -263,7 +302,7 @@ $(function() {
     console.log("Headers is " + header);
     var header_bin = ___.hex_to_uint16_array(header);
 
-    gl.bindFramebuffer(gl.FRAMEBUFFER, _.framebuffers.main);
+    _.textures.swap();
     _.programs['init-sha256'].use();
     _.programs['init-sha256'].render(header_bin.slice(0, 32));
 
@@ -271,9 +310,10 @@ $(function() {
 
     match("Initial round", "6a09e667bb67ae853c6ef372a54ff53a510e527f9b05688c1f83d9ab5be0cd1902000000ff1fd715a981626682fd8d73afda09d825722d6ba5f665b1be6ed400242f7b650c3623c0f087fefdeefcd4c84d916a511551425fabaf52d55d5596490000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000006a09e667bb67ae853c6ef372a54ff53a510e527f9b05688c1f83d9ab5be0cd19", printBuffer(buf, 80));
 
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    _.textures.swap();
 
     _.programs['sha256-round'].use();
+
     _.programs['sha256-round'].render(0);
 
     gl.readPixels(0, 0, 80, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
