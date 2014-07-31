@@ -1,67 +1,4 @@
-function initializeGl() {
-    canvas = document.createElement('canvas');
-    if (debug || true) document.body.appendChild(canvas)
-    canvas.height = textureSize;
-    canvas.width = textureSize;
-
-    var names = [ "webgl", "experimental-webgl", "moz-webgl", "webkit-3d" ],
-        gl = null;
-
-    for(var i in names) {
-        try {
-            gl = canvas.getContext(names[i], {preserveDrawingBuffer: true});
-            if (gl) { break; }
-        } catch (e) { }
-    }
-
-    if (!gl) {
-        throw "Your browser doesn't support WebGL";
-    }
-
-    gl.clearColor ( 1.0, 1.0, 1.0, 1.0 );
-    gl.clear ( gl.COLOR_BUFFER_BIT );
-    gl.viewport(0, 0, canvas.width, canvas.height);
-
-    return gl;
-}
-
-function loadResource(n) {
-    var xhr = new XMLHttpRequest();
-    xhr.open("GET", n, false);
-    xhr.send(null);
-    var x = xhr.responseText;
-    return x;
-};
-
-function establishProgram(gl, vertex_shader, fragment_shader) {
-    var program = gl.createProgram(),
-        vShader = gl.createShader(gl.VERTEX_SHADER),
-        vShaderSource = loadResource(vertex_shader),
-        fShader = gl.createShader(gl.FRAGMENT_SHADER),
-        fShaderSource = loadResource(fragment_shader);
-
-    gl.shaderSource(vShader, vShaderSource);
-    gl.compileShader(vShader);
-    if (!gl.getShaderParameter(vShader, gl.COMPILE_STATUS)) {
-        throw gl.getShaderInfoLog(vShader);
-    }
-    gl.attachShader(program, vShader);
-
-    gl.shaderSource(fShader, fShaderSource);
-    gl.compileShader(fShader);
-    if (!gl.getShaderParameter(fShader, gl.COMPILE_STATUS)) {
-        throw gl.getShaderInfoLog(fShader);
-    }
-    gl.attachShader(program, fShader);
-
-    gl.linkProgram(program);
-    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-        throw gl.getProgramInfoLog(program);
-    }
-
-    return program;
-}
-
+/* SHA-256 related stuff */
 var h =  [0x6a09, 0xe667, 0xbb67, 0xae85,
           0x3c6e, 0xf372, 0xa54f, 0xf53a,
           0x510e, 0x527f, 0x9b05, 0x688c,
@@ -100,16 +37,109 @@ var k =  [0x428a, 0x2f98, 0x7137, 0x4491,
           0x90be, 0xfffa, 0xa450, 0x6ceb,
           0xbef9, 0xa3f7, 0xc671, 0x78f2];
 
-function setupSquadMesh(gl) {
-    //Convert pixel coordinate to vertex (-1, 1)
-    var x = 32;
-    var nX = x / textureSize;
-    var vX = (nX * 2) - 1
+var gl;
+var _ = {
+    buffers: {},
+    framebuffers: {},
+    textures: {},
+    programs: {}
+}
 
-    var y = 2;
-    var nY = y / textureSize;
-    var vY = (nY * 2) - 1;
+function loadResource(n) {
+    var xhr = new XMLHttpRequest();
+    xhr.open("GET", n, false);
+    xhr.send(null);
+    var x = xhr.responseText;
+    return x;
+};
+
+function initGL() {
+    canvas = document.createElement('canvas');
+    if (debug || true) document.body.appendChild(canvas)
+    canvas.height = textureSize;
+    canvas.width = textureSize;
+
+    var names = [ "webgl", "experimental-webgl", "moz-webgl", "webkit-3d" ];
+
+    for(var i in names) {
+        try {
+            gl = canvas.getContext(names[i], {preserveDrawingBuffer: true});
+            if (gl) { break; }
+        } catch (e) { }
+    }
+
+    if (!gl) {
+        throw "Your browser doesn't support WebGL";
+    }
+
+    gl.clearColor ( 1.0, 1.0, 1.0, 1.0 );
+    gl.clear ( gl.COLOR_BUFFER_BIT );
+    gl.viewport(0, 0, canvas.width, canvas.height);
+
+    _.context = gl;
+}
+
+function establishProgram(vertex_shader, fragment_shader) {
+    var program = gl.createProgram(),
+        vShader = gl.createShader(gl.VERTEX_SHADER),
+        vShaderSource = loadResource(vertex_shader),
+        fShader = gl.createShader(gl.FRAGMENT_SHADER),
+        fShaderSource = loadResource(fragment_shader);
+
+    gl.shaderSource(vShader, vShaderSource);
+    gl.compileShader(vShader);
+    if (!gl.getShaderParameter(vShader, gl.COMPILE_STATUS)) {
+        throw gl.getShaderInfoLog(vShader);
+    }
+    gl.attachShader(program, vShader);
+
+    gl.shaderSource(fShader, fShaderSource);
+    gl.compileShader(fShader);
+    if (!gl.getShaderParameter(fShader, gl.COMPILE_STATUS)) {
+        throw gl.getShaderInfoLog(fShader);
+    }
+    gl.attachShader(program, fShader);
+
+    gl.linkProgram(program);
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+        throw gl.getProgramInfoLog(program);
+    }
+
+    return program;
+}
+
+function initFramebuffers() {
+    _.framebuffers.main = gl.createFramebuffer();
+}
+
+function initTextures() {
+
+    _.textures.fb = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, _.textures.fb);
+
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, textureSize, textureSize, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, _.framebuffers.main);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, _.textures.fb, 0);
+
+    /* revert all to default */
+    gl.bindTexture(gl.TEXTURE_2D, null);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+}
+
+
+function initBuffers() {
+    //Convert pixel coordinate to vertex (-1, 1)
+//     var x = 32;
+//     var nX = x / textureSize;
+//     var vX = (nX * 2) - 1
 //
+//     var y = 2;
+//     var nY = y / textureSize;
+//     var vY = (nY * 2) - 1;
+// //
     var vertices = new Float32Array([
         1,  1,
        -1,  1,
@@ -121,12 +151,21 @@ function setupSquadMesh(gl) {
         // -1, vY
     ]); //Square to cover whole canvas
 
-    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+    _.buffers.vertices = gl.createBuffer();
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, _.buffers.vertices);
     gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
 }
 
-function initSHA256Program (gl) {
-    var program = establishProgram(gl, "shaders/default-vs.js", "shaders/init-sha256-fs.js");
+function initPrograms() {
+    _.programs["init-sha256"] = initSHA256Program();
+    _.programs["sha256-round"] = sha256RoundProgram();
+}
+
+function initSHA256Program () {
+    var program = establishProgram("shaders/default-vs.js", "shaders/init-sha256-fs.js");
 
     var locations = {
         H:       gl.getUniformLocation(program, "H"),
@@ -136,39 +175,81 @@ function initSHA256Program (gl) {
         position: gl.getAttribLocation(program, "aPosition")
     }
 
-
     return {
         P: program,
         L: locations,
         A: attributes,
-        toRender: function(initial) {
-            gl.useProgram(program);
-
+        use: function() { gl.useProgram(program); },
+        render: function(initial) {
             gl.uniform2fv(locations.initial, initial);
             gl.uniform2fv(locations.H, h);
 
+            gl.bindBuffer(gl.ARRAY_BUFFER, _.buffers.vertices);
             gl.enableVertexAttribArray(attributes.position);
             gl.vertexAttribPointer(attributes.position, 2, gl.FLOAT, false, 0, 0);
-        },
-        postRender: function() {
+
+            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
             gl.disableVertexAttribArray(attributes.position);
         }
     };
 }
 
-$(function() {
-    var gl = initializeGl();
-    setupSquadMesh(gl);
-    var programs = {
-        "init-sha256": initSHA256Program(gl)
+function sha256RoundProgram() {
+    var program = establishProgram("shaders/default-vs.js", "shaders/sha256-round-fs.js");
+
+    var locations = {
+        K:     gl.getUniformLocation(program, "K"),
+        round: gl.getUniformLocation(program, "round"),
+        sampler: gl.getUniformLocation(program, "uSampler")
+    };
+    var attributes = {
+        position: gl.getAttribLocation(program, "aPosition")
     }
+
+    return {
+        P: program,
+        L: locations,
+        A: attributes,
+        use: function() { gl.useProgram(program); },
+        render: function(round) {
+            gl.uniform1i(locations.round, round);
+            gl.uniform2fv(locations.K, k);
+
+            gl.bindBuffer(gl.ARRAY_BUFFER, _.buffers.vertices);
+            gl.enableVertexAttribArray(attributes.position);
+            gl.vertexAttribPointer(attributes.position, 2, gl.FLOAT, false, 0, 0);
+
+            gl.activeTexture(gl.TEXTURE0);
+            gl.bindTexture(gl.TEXTURE_2D, _.textures.fb);
+            gl.uniform1i(locations.sampler, 0);
+
+            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+            gl.disableVertexAttribArray(attributes.position);
+        }
+    };
+
+}
+
+$(function() {
+    initGL();
+    initBuffers();
+    initFramebuffers();
+    initTextures();
+    initPrograms();
 
     console.log("Headers is " + header);
     var header_bin = ___.hex_to_uint16_array(header);
 
-    programs['init-sha256'].toRender(header_bin.slice(0, 32));
-    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-    programs['init-sha256'].postRender();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, _.framebuffers.main);
+    _.programs['init-sha256'].use();
+    _.programs['init-sha256'].render(header_bin.slice(0, 32));
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+    _.programs['sha256-round'].use();
+    _.programs['sha256-round'].render(1);
 
     var buf = new Uint8Array(80 * 1 * 4);
     gl.readPixels(0, 0, 80, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
