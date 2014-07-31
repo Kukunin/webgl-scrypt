@@ -213,7 +213,7 @@ function sha256RoundProgram() {
         A: attributes,
         use: function() { gl.useProgram(program); },
         render: function(round) {
-            gl.uniform1i(locations.round, round);
+            gl.uniform1f(locations.round, round);
             gl.uniform2fv(locations.K, k);
 
             gl.bindBuffer(gl.ARRAY_BUFFER, _.buffers.vertices);
@@ -246,12 +246,20 @@ $(function() {
     _.programs['init-sha256'].use();
     _.programs['init-sha256'].render(header_bin.slice(0, 32));
 
+    var buf = new Uint8Array(80 * 1 * 4);
+    gl.readPixels(0, 0, 80, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+
+    var result = [];
+    for(var i = 0; i < 80*4; i+=2) {
+        result.push((buf[i]*256) + buf[i+1]);
+    }
+    console.log("Result is " + ___.uint16_array_to_hex(result));
+
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
     _.programs['sha256-round'].use();
-    _.programs['sha256-round'].render(1);
+    _.programs['sha256-round'].render(0);
 
-    var buf = new Uint8Array(80 * 1 * 4);
     gl.readPixels(0, 0, 80, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
 
     var result = [];
