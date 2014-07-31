@@ -202,9 +202,13 @@ function initBuffers() {
 
 function initPrograms() {
     _.programs["init-sha256"] = initSHA256Program();
-    _.programs["sha256-round"] = sha256RoundProgram();
+    _.programs["fill-sha256-work"] = fillSHA256workProgram();
 }
 
+/**
+* Shader fills 8 initial hash words (32 bytes) with initial values from H array
+* And fills 16 predefined work elements
+*/
 function initSHA256Program () {
     var program = establishProgram("shaders/default-vs.js", "shaders/init-sha256-fs.js");
 
@@ -236,8 +240,12 @@ function initSHA256Program () {
     };
 }
 
-function sha256RoundProgram() {
-    var program = establishProgram("shaders/default-vs.js", "shaders/sha256-round-fs.js");
+/**
+* Shader uses 2 rounds to fill 64*4 bytes array with work.
+* Call this shader 24 times (24*2 = 48 without 16 predefined elements) with rounds 0..24
+*/
+function fillSHA256workProgram() {
+    var program = establishProgram("shaders/default-vs.js", "shaders/fill-sha256-work.fs.js");
 
     var locations = {
         K:     gl.getUniformLocation(program, "K"),
@@ -310,14 +318,16 @@ $(function() {
 
     match("Initial round", "6a09e667bb67ae853c6ef372a54ff53a510e527f9b05688c1f83d9ab5be0cd1902000000ff1fd715a981626682fd8d73afda09d825722d6ba5f665b1be6ed400242f7b650c3623c0f087fefdeefcd4c84d916a511551425fabaf52d55d5596490000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000006a09e667bb67ae853c6ef372a54ff53a510e527f9b05688c1f83d9ab5be0cd19", printBuffer(buf, 80));
 
-    _.textures.swap();
+    _.programs['fill-sha256-work'].use();
 
-    _.programs['sha256-round'].use();
 
-    _.programs['sha256-round'].render(0);
+    for(var i = 0; i < 24; i++) {
+        _.textures.swap();
+        _.programs['fill-sha256-work'].render(i);
+    }
 
     gl.readPixels(0, 0, 80, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
 
-    match("First round", "6a09e667bb67ae853c6ef372a54ff53a510e527f9b05688c1f83d9ab5be0cd1902000000ff1fd715a981626682fd8d73afda09d825722d6ba5f665b1be6ed400242f7b650c3623c0f087fefdeefcd4c84d916a511551425fabaf52d55d559649132969c1ea9d2b5fc66142e4286085f9a809188e1204725d5679a7f0990ee0b0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000006a09e667bb67ae853c6ef372a54ff53a510e527f9b05688c1f83d9ab5be0cd19", printBuffer(buf, 80));
+    match("Fill work array", "6a09e667bb67ae853c6ef372a54ff53a510e527f9b05688c1f83d9ab5be0cd1902000000ff1fd715a981626682fd8d73afda09d825722d6ba5f665b1be6ed400242f7b650c3623c0f087fefdeefcd4c84d916a511551425fabaf52d55d559649132969c1ea9d2b5fc66142e4286085f9a809188e1204725d5679a7f0990ee0b0ff4f1190994e0ec53cde910f4f5f765de6567a992c59a1fc3366dcb41ba268c94a89248822f0ddeea2aae349d26c04c5a73bcc704bd9e9badbfb81d6a803e3e7eed17376873fb43b161ab8b2d4f6d995d327c01d9949ac1bff15a9c23f02ee9f2310307fa361b07f26b29ace9a61ea6a663f0fc66a0b4b49a3aa724b44c56638945edb519680528deeb6d5ea302e86293cc3d327c13df5c75a0cf0d50e09105f6a09e667bb67ae853c6ef372a54ff53a510e527f9b05688c1f83d9ab5be0cd19", printBuffer(buf, 80));
 
 });

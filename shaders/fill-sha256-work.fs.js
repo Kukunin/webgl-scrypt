@@ -102,20 +102,28 @@ varying vec2 vTextCoord;
 uniform float round;
 uniform vec2 K[64];
 
-//Start position for whole block
+//Start position for work block in texture
 float start;
+// Round offset related to the block offset
+float inBlockOffset;
+//Work array
+vec2 w[8];
 
 vec4 _(in float offset) {
     vec2 coordinate = vec2(mod(start + offset, 1024.), floor((start + offset)/1024.));
     return texture2D(uSampler, coordinate / 1024.);
 }
 
-vec2 _2(in float offset) {
-    vec4 rgba = _(offset)*255.;
+vec2 e(in float offset) {
+    vec4 rgba = _(offset + inBlockOffset)*255.;
+
     float x = ((rgba.r * 256.) + rgba.g);
     float y = ((rgba.b * 256.) + rgba.a);
     return vec2(x, y);
 }
+
+#define WORK_BLOCK_OFFSET 8.
+#define WORKS_PER_ROUND 2.
 
 void main () {
     vec4 c = gl_FragCoord - 0.5;
@@ -123,18 +131,17 @@ void main () {
     float offset = mod(position, 65984.);
     float block = floor(position / 65984.);
 
-    if ( offset >= 24. && offset < 72.) {
-        vec2 w[64];
-        for (int i = 0; i < 16; i++ ) {
-            w[i] = _2(float(i) + 8.);
-        }
+    inBlockOffset = 16. + (round * WORKS_PER_ROUND);
+    if ( offset >= (WORK_BLOCK_OFFSET + inBlockOffset) && offset < (WORK_BLOCK_OFFSET + inBlockOffset + WORKS_PER_ROUND)) {
+        start = (block * 65984.) + WORK_BLOCK_OFFSET;
 
-        start = block * 65984.;
+        w[0] = blend(e(-16.), e(-15.), e(-7.), e(-2.));
+        w[1] = blend(e(-15.), e(-14.), e(-6.), e(-1.));
 
-        for (int i = 16; i < 24; i++ ) {
-            w[i] = blend(w[i-16], w[i-15], w[i-7], w[i-2]);
-            if ( offset == (8. + float(i))) {
+        for (int i = 0; i < int(WORKS_PER_ROUND); i++ ) {
+            if ( offset == (WORK_BLOCK_OFFSET + inBlockOffset + float(i))) {
                 gl_FragColor = toRGBA(w[i]);
+                break;
             }
         }
     } else {
