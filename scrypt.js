@@ -231,6 +231,25 @@ function sha256RoundProgram() {
     };
 
 }
+function printBuffer(buf, length) {
+    var result = [];
+    for(var i = 0; i < length*4; i+=2) {
+        result.push((buf[i]*256) + buf[i+1]);
+    }
+    return ___.uint16_array_to_hex(result);
+}
+
+function match(name, expect, actual) {
+    if ( expect == actual) {
+        console.log(name + " match");
+    } else {
+        console.log(name + " dismatch");
+        console.log("Actual: ");
+        console.log(actual);
+        console.log("Expected: ");
+        console.log(expected);
+    }
+}
 
 $(function() {
     initGL();
@@ -239,6 +258,8 @@ $(function() {
     initTextures();
     initPrograms();
 
+    var buf = new Uint8Array(80 * 1 * 4);
+
     console.log("Headers is " + header);
     var header_bin = ___.hex_to_uint16_array(header);
 
@@ -246,14 +267,9 @@ $(function() {
     _.programs['init-sha256'].use();
     _.programs['init-sha256'].render(header_bin.slice(0, 32));
 
-    var buf = new Uint8Array(80 * 1 * 4);
     gl.readPixels(0, 0, 80, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
 
-    var result = [];
-    for(var i = 0; i < 80*4; i+=2) {
-        result.push((buf[i]*256) + buf[i+1]);
-    }
-    console.log("Result is " + ___.uint16_array_to_hex(result));
+    match("Initial round", "6a09e667bb67ae853c6ef372a54ff53a510e527f9b05688c1f83d9ab5be0cd1902000000ff1fd715a981626682fd8d73afda09d825722d6ba5f665b1be6ed400242f7b650c3623c0f087fefdeefcd4c84d916a511551425fabaf52d55d5596490000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000006a09e667bb67ae853c6ef372a54ff53a510e527f9b05688c1f83d9ab5be0cd19", printBuffer(buf, 80));
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
@@ -262,10 +278,6 @@ $(function() {
 
     gl.readPixels(0, 0, 80, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
 
-    var result = [];
-    for(var i = 0; i < 80*4; i+=2) {
-        result.push((buf[i]*256) + buf[i+1]);
-    }
-    console.log("Result is " + ___.uint16_array_to_hex(result));
+    match("First round", "6a09e667bb67ae853c6ef372a54ff53a510e527f9b05688c1f83d9ab5be0cd1902000000ff1fd715a981626682fd8d73afda09d825722d6ba5f665b1be6ed400242f7b650c3623c0f087fefdeefcd4c84d916a511551425fabaf52d55d559649132969c1ea9d2b5fc66142e4286085f9a809188e1204725d5679a7f0990ee0b0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000006a09e667bb67ae853c6ef372a54ff53a510e527f9b05688c1f83d9ab5be0cd19", printBuffer(buf, 80));
 
 });

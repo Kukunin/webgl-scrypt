@@ -1,13 +1,15 @@
 precision mediump float;
 
+#define POW_2_08 256.0
+
 vec4 toRGBA(vec2 arg) {
       float V = float(arg.x);
-      float R = floor(V / pow(2.0, 8.0));
-      V -= R * pow(2.0, 8.0);
+      float R = floor(V / POW_2_08);
+      V -= R * POW_2_08;
       float G = V;
       V = float(arg.y);
-      float B = floor(V / pow(2.0, 8.0));
-      V -= B * pow(2.0, 8.0);
+      float B = floor(V / POW_2_08);
+      V -= B * POW_2_08;
       float A = V;
       return vec4(R/255., G/255., B/255., A/255.);
 }
