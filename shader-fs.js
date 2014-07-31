@@ -1,9 +1,24 @@
 precision mediump float;
 
+vec4 toRGBA(vec2 arg) {
+      float V = float(arg.x);
+      float R = floor(V / pow(2.0, 8.0));
+      V -= R * pow(2.0, 8.0);
+      float G = V;
+      V = float(arg.y);
+      float B = floor(V / pow(2.0, 8.0));
+      V -= B * pow(2.0, 8.0);
+      float A = V;
+      return vec4(R/255., G/255., B/255., A/255.);
+}
+
+uniform vec2 H[8];
+uniform vec2 header[20];
+
 void main () {
     vec4 c = gl_FragCoord - 0.5;
     float position = (c.y * 1024.) + c.x;
-    float offset = mod(position, 65984.);
+    int offset = int(mod(position, 65984.));
     float block = floor(position / 65984.);
 
     if ( 1048576. < (block + 1.) * 65984. ) {
@@ -11,17 +26,25 @@ void main () {
         return;
     }
 
-
-    if ( offset <= 66. ) {
-        gl_FragColor = vec4(0., 1., 0., 1.);
-    } else if ( offset <= 130. ) {
-        gl_FragColor = vec4(1., 0., 0., 1.);
-    } else if ( offset < 65666. ) {
-        gl_FragColor = vec4(1., 0., 1., 1.);
+    if ( offset < 8 ) {
+        for(int i = 0; i < 8; i++) {
+            if ( i == offset ) {
+                gl_FragColor = toRGBA(H[i]);
+            }
+        }
+    } else if ( offset < 24 ) {
+        for(int i = 8; i < 24; i++) {
+            if ( i == offset ) {
+                gl_FragColor = toRGBA(header[i-8]);
+            }
+        }
+    } else if ( offset >= 72 && offset < 80 ) {
+        for(int i = 72; i < 80; i++) {
+            if ( i == offset ) {
+                gl_FragColor = toRGBA(H[i-72]);
+            }
+        }
     } else {
-    // if ( c.y == 1. ) {
-    //     gl_FragColor = vec4(0., 1., 0., 1.);
-    // } else {
-        gl_FragColor = vec4(0., 0., 0., 1.);
+        discard;
     }
 }
