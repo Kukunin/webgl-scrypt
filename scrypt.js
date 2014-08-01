@@ -453,15 +453,52 @@ $(function() {
     _.programs['copier'].use();
 
     _.textures.swap();
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-
     _.programs['copier'].render(0, 72, 8, _.SUM_MODE); //Add computed hash to destination
 
     gl.readPixels(0, 0, 80, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
     match("Copying", "9345e1bdf4360b3b9c13f5656a85df67129cd02e38b264e1a3b22b55a7fdfd5502000000ff1fd715a981626682fd8d73afda09d825722d6ba5f665b1be6ed400242f7b650c3623c0f087fefdeefcd4c84d916a511551425fabaf52d55d559649132969c1ea9d2b5fc66142e4286085f9a809188e1204725d5679a7f0990ee0b0ff4f1190994e0ec53cde910f4f5f765de6567a992c59a1fc3366dcb41ba268c94a89248822f0ddeea2aae349d26c04c5a73bcc704bd9e9badbfb81d6a803e3e7eed17376873fb43b161ab8b2d4f6d995d327c01d9949ac1bff15a9c23f02ee9f2310307fa361b07f26b29ace9a61ea6a663f0fc66a0b4b49a3aa724b44c56638945edb519680528deeb6d5ea302e86293cc3d327c13df5c75a0cf0d50e09105ffd4fc824af9db9c0d882e8d70fd5d4a163ab22add3b7cd6dc336050003deca6e", printBuffer(buf, 80));
 
+    /* Prepare to next round of SHA-256 */
+    _.textures.swap();
+    //Copy first round hash to initial position
+    _.programs['copier'].render(72, 0, 8, _.COPY_MODE);
+    _.textures.swap();
+    //Copy first round hash to destination position
+    _.programs['copier'].render(72, 128, 8, _.COPY_MODE);
+    _.textures.swap();
+    //Header padded last part to work arrays
+    _.programs['copier'].render(80, 8, 16, _.COPY_MODE);
+
+    gl.readPixels(0, 0, 24, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+    match("Prepare to next round", "fd4fc824af9db9c0d882e8d70fd5d4a163ab22add3b7cd6dc336050003deca6e8ba5f869f139d55346e2021b00039bfc800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000280", printBuffer(buf, 24));
+
+    /* Compute and fill work elements */
+    _.programs['fill-sha256-work'].use();
+
+    for(var i = 0; i < 24; i++) {
+        _.textures.swap();
+        _.programs['fill-sha256-work'].render(i);
+    }
+
+    /* Compute the hash */
+    _.programs['compute-sha256'].use();
+
+    for(var i = 0; i < 32; i++) {
+        _.textures.swap();
+        _.programs['compute-sha256'].render(i);
+    }
+
+    /* Copy the result to key_hash block */
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    _.programs['copier'].use();
+
+    _.textures.swap();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    _.programs['copier'].render(0, 128, 8, _.SUM_MODE);
+
+    gl.readPixels(128, 0, 8, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+    match("Final hash", "54e2fc0ab1d0c524d24ee13c0dee324776c878d419344ac35b995640eab1371c", printBuffer(buf, 8));
+
     var msecTime = (((new Date()).getTime())-startTime);
     console.log("Running time: " + msecTime + "ms");
-
-    console.log("First round of hash is " + printBuffer(buf.subarray(72*4, 80*4), 8));
 });
