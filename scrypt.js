@@ -489,15 +489,25 @@ $(function() {
     }
 
     /* Copy the result to key_hash block */
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     _.programs['copier'].use();
 
     _.textures.swap();
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     _.programs['copier'].render(0, 128, 8, _.SUM_MODE);
 
     gl.readPixels(128, 0, 8, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
     match("Final hash", "54e2fc0ab1d0c524d24ee13c0dee324776c878d419344ac35b995640eab1371c", printBuffer(buf, 8));
+
+    /* Create iKey */
+    _.textures.swap();
+    _.programs['copier'].render(128, 96, 8, _.XOR_MODE);
+
+    /* Create oKey */
+    _.textures.swap();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    _.programs['copier'].render(128, 112, 8, _.XOR_MODE);
+
+    gl.readPixels(96, 0, 32, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+    match("iKey/oKey", "62d4ca3c87e6f312e478d70a3bd8047140fe4ee22f027cf56daf6076dc87012a363636363636363636363636363636363636363636363636363636363636363608bea056ed8c99788e12bd6051b26e1b2a9424884568169f07c50a1cb6ed6b405c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c", printBuffer(buf, 32));
 
     var msecTime = (((new Date()).getTime())-startTime);
     console.log("Running time: " + msecTime + "ms");
