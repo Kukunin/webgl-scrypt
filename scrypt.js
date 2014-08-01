@@ -411,6 +411,45 @@ function match(name, expected, actual) {
     }
 }
 
+/*
+* Function to calculate sha256
+* @target      Target offset. Computed hash will be copied there
+* @dont_copy   Flag to set initial hash copying.
+*               Set to true if initial hash is already set
+*
+* First 16 words should be already copied into sha256 work array
+*/
+function sha256_round(target, dont_copy) {
+    if (!dont_copy) {
+        _.textures.swap();
+        //Copy initial hash
+        _.programs['copier'].render(target, 0, 8, _.COPY_MODE);
+    }
+
+    /* Compute and fill work elements */
+    _.programs['fill-sha256-work'].use();
+
+    for(var i = 0; i < 24; i++) {
+        _.textures.swap();
+        _.programs['fill-sha256-work'].render(i);
+    }
+
+    /* Compute the hash */
+    _.programs['compute-sha256'].use();
+
+    for(var i = 0; i < 32; i++) {
+        _.textures.swap();
+        _.programs['compute-sha256'].render(i);
+    }
+
+    /* Copy the result to target block */
+    _.programs['copier'].use();
+
+    _.textures.swap();
+    _.programs['copier'].render(0, target, 8, _.SUM_MODE);
+
+}
+
 $(function() {
     initGL();
     initBuffers();
@@ -432,85 +471,29 @@ $(function() {
     _.programs['init-sha256'].use();
     _.programs['init-sha256'].render(header_bin.slice(0, 38), nonce_bin);
 
+    /* initial tests */
     gl.readPixels(0, 0, 80, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
     match("Initial round", "6a09e667bb67ae853c6ef372a54ff53a510e527f9b05688c1f83d9ab5be0cd1902000000ff1fd715a981626682fd8d73afda09d825722d6ba5f665b1be6ed400242f7b650c3623c0f087fefdeefcd4c84d916a511551425fabaf52d55d5596490000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000006a09e667bb67ae853c6ef372a54ff53a510e527f9b05688c1f83d9ab5be0cd19", printBuffer(buf, 80));
-
     gl.readPixels(80, 0, 16, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
     match("Padded header", "8ba5f869f139d55346e2021b00039bfc800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000280", printBuffer(buf, 16));
-
     gl.readPixels(96, 0, 32, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
     match("iKey and oKey masks", "363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636365c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c", printBuffer(buf, 32));
-
     gl.readPixels(136, 0, 16, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
     match("iKey and oKey initial hashes", "6a09e667bb67ae853c6ef372a54ff53a510e527f9b05688c1f83d9ab5be0cd196a09e667bb67ae853c6ef372a54ff53a510e527f9b05688c1f83d9ab5be0cd19", printBuffer(buf, 16));
 
-    _.programs['fill-sha256-work'].use();
+    /* First round for key hash */
+    sha256_round(72, true);
+    gl.readPixels(72, 0, 8, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+    match("Header base hash", "fd4fc824af9db9c0d882e8d70fd5d4a163ab22add3b7cd6dc336050003deca6e", printBuffer(buf, 8));
 
-    for(var i = 0; i < 24; i++) {
-        _.textures.swap();
-        _.programs['fill-sha256-work'].render(i);
-    }
-
-    gl.readPixels(0, 0, 80, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
-
-    match("Fill work array", "6a09e667bb67ae853c6ef372a54ff53a510e527f9b05688c1f83d9ab5be0cd1902000000ff1fd715a981626682fd8d73afda09d825722d6ba5f665b1be6ed400242f7b650c3623c0f087fefdeefcd4c84d916a511551425fabaf52d55d559649132969c1ea9d2b5fc66142e4286085f9a809188e1204725d5679a7f0990ee0b0ff4f1190994e0ec53cde910f4f5f765de6567a992c59a1fc3366dcb41ba268c94a89248822f0ddeea2aae349d26c04c5a73bcc704bd9e9badbfb81d6a803e3e7eed17376873fb43b161ab8b2d4f6d995d327c01d9949ac1bff15a9c23f02ee9f2310307fa361b07f26b29ace9a61ea6a663f0fc66a0b4b49a3aa724b44c56638945edb519680528deeb6d5ea302e86293cc3d327c13df5c75a0cf0d50e09105f6a09e667bb67ae853c6ef372a54ff53a510e527f9b05688c1f83d9ab5be0cd19", printBuffer(buf, 80));
-
-    _.programs['compute-sha256'].use();
-
-
-    for(var i = 0; i < 32; i++) {
-        _.textures.swap();
-        _.programs['compute-sha256'].render(i);
-    }
-
-    gl.readPixels(0, 0, 80, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
-
-    // f577ed68bb
-    match("Hash computing", "9345e1bdf4360b3b9c13f5656a85df67129cd02e38b264e1a3b22b55a7fdfd5502000000ff1fd715a981626682fd8d73afda09d825722d6ba5f665b1be6ed400242f7b650c3623c0f087fefdeefcd4c84d916a511551425fabaf52d55d559649132969c1ea9d2b5fc66142e4286085f9a809188e1204725d5679a7f0990ee0b0ff4f1190994e0ec53cde910f4f5f765de6567a992c59a1fc3366dcb41ba268c94a89248822f0ddeea2aae349d26c04c5a73bcc704bd9e9badbfb81d6a803e3e7eed17376873fb43b161ab8b2d4f6d995d327c01d9949ac1bff15a9c23f02ee9f2310307fa361b07f26b29ace9a61ea6a663f0fc66a0b4b49a3aa724b44c56638945edb519680528deeb6d5ea302e86293cc3d327c13df5c75a0cf0d50e09105f6a09e667bb67ae853c6ef372a54ff53a510e527f9b05688c1f83d9ab5be0cd19", printBuffer(buf, 80));
-
-    _.programs['copier'].use();
-
-    _.textures.swap();
-    _.programs['copier'].render(0, 72, 8, _.SUM_MODE); //Add computed hash to destination
-
-    gl.readPixels(0, 0, 80, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
-    match("Copying", "9345e1bdf4360b3b9c13f5656a85df67129cd02e38b264e1a3b22b55a7fdfd5502000000ff1fd715a981626682fd8d73afda09d825722d6ba5f665b1be6ed400242f7b650c3623c0f087fefdeefcd4c84d916a511551425fabaf52d55d559649132969c1ea9d2b5fc66142e4286085f9a809188e1204725d5679a7f0990ee0b0ff4f1190994e0ec53cde910f4f5f765de6567a992c59a1fc3366dcb41ba268c94a89248822f0ddeea2aae349d26c04c5a73bcc704bd9e9badbfb81d6a803e3e7eed17376873fb43b161ab8b2d4f6d995d327c01d9949ac1bff15a9c23f02ee9f2310307fa361b07f26b29ace9a61ea6a663f0fc66a0b4b49a3aa724b44c56638945edb519680528deeb6d5ea302e86293cc3d327c13df5c75a0cf0d50e09105ffd4fc824af9db9c0d882e8d70fd5d4a163ab22add3b7cd6dc336050003deca6e", printBuffer(buf, 80));
-
-    /* Prepare to next round of SHA-256 */
-    _.textures.swap();
-    //Copy first round hash to initial position
-    _.programs['copier'].render(72, 0, 8, _.COPY_MODE);
-    _.textures.swap();
+    /* Final round for key hash */
     //Copy first round hash to destination position
+    _.textures.swap();
     _.programs['copier'].render(72, 128, 8, _.COPY_MODE);
+    //Copy padded header last part to work arrays
     _.textures.swap();
-    //Header padded last part to work arrays
     _.programs['copier'].render(80, 8, 16, _.COPY_MODE);
-
-    gl.readPixels(0, 0, 24, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
-    match("Prepare to next round", "fd4fc824af9db9c0d882e8d70fd5d4a163ab22add3b7cd6dc336050003deca6e8ba5f869f139d55346e2021b00039bfc800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000280", printBuffer(buf, 24));
-
-    /* Compute and fill work elements */
-    _.programs['fill-sha256-work'].use();
-
-    for(var i = 0; i < 24; i++) {
-        _.textures.swap();
-        _.programs['fill-sha256-work'].render(i);
-    }
-
-    /* Compute the hash */
-    _.programs['compute-sha256'].use();
-
-    for(var i = 0; i < 32; i++) {
-        _.textures.swap();
-        _.programs['compute-sha256'].render(i);
-    }
-
-    /* Copy the result to key_hash block */
-    _.programs['copier'].use();
-
-    _.textures.swap();
-    _.programs['copier'].render(0, 128, 8, _.SUM_MODE);
+    sha256_round(128);
 
     gl.readPixels(128, 0, 8, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
     match("Final hash", "54e2fc0ab1d0c524d24ee13c0dee324776c878d419344ac35b995640eab1371c", printBuffer(buf, 8));
@@ -526,40 +509,10 @@ $(function() {
     gl.readPixels(96, 0, 32, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
     match("iKey/oKey", "62d4ca3c87e6f312e478d70a3bd8047140fe4ee22f027cf56daf6076dc87012a363636363636363636363636363636363636363636363636363636363636363608bea056ed8c99788e12bd6051b26e1b2a9424884568169f07c50a1cb6ed6b405c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c", printBuffer(buf, 32));
 
-    /* Prepare to first round of SHA-256 of iKey*/
-    _.textures.swap();
-    //Copy first round hash to initial position
-    _.programs['copier'].render(136, 0, 8, _.COPY_MODE);
-
-    gl.readPixels(0, 0, 8, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
-    match("Initial hash", "6a09e667bb67ae853c6ef372a54ff53a510e527f9b05688c1f83d9ab5be0cd19", printBuffer(buf, 8));
-
-    /* Copy the iKey to work array */
+    /* Create iKey initial hash */
     _.textures.swap();
     _.programs['copier'].render(96, 8, 16, _.COPY_MODE);
-
-    /* Compute and fill work elements */
-    _.programs['fill-sha256-work'].use();
-
-    for(var i = 0; i < 24; i++) {
-        _.textures.swap();
-        _.programs['fill-sha256-work'].render(i);
-    }
-
-    /* Compute the hash */
-    _.programs['compute-sha256'].use();
-
-    for(var i = 0; i < 32; i++) {
-        _.textures.swap();
-        _.programs['compute-sha256'].render(i);
-    }
-
-    /* Copy the result to key_hash block */
-    _.programs['copier'].use();
-
-    _.textures.swap();
-    _.programs['copier'].render(0, 136, 8, _.SUM_MODE);
-
+    sha256_round(136);
     gl.readPixels(136, 0, 8, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
     match("iKey base hash", "1810219db381a5578d2a3163f1c8300d31dffbcd47d7cad0c2f2be550f287816", printBuffer(buf, 8));
 
