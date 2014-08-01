@@ -4,38 +4,40 @@ var h =  [0x6a09, 0xe667, 0xbb67, 0xae85,
           0x510e, 0x527f, 0x9b05, 0x688c,
           0x1f83, 0xd9ab, 0x5be0, 0xcd19];
 
-var k =  [0x428a, 0x2f98, 0x7137, 0x4491,
-          0xb5c0, 0xfbcf, 0xe9b5, 0xdba5,
-          0x3956, 0xc25b, 0x59f1, 0x11f1,
-          0x923f, 0x82a4, 0xab1c, 0x5ed5,
-          0xd807, 0xaa98, 0x1283, 0x5b01,
-          0x2431, 0x85be, 0x550c, 0x7dc3,
-          0x72be, 0x5d74, 0x80de, 0xb1fe,
-          0x9bdc, 0x06a7, 0xc19b, 0xf174,
-          0xe49b, 0x69c1, 0xefbe, 0x4786,
-          0x0fc1, 0x9dc6, 0x240c, 0xa1cc,
-          0x2de9, 0x2c6f, 0x4a74, 0x84aa,
-          0x5cb0, 0xa9dc, 0x76f9, 0x88da,
-          0x983e, 0x5152, 0xa831, 0xc66d,
-          0xb003, 0x27c8, 0xbf59, 0x7fc7,
-          0xc6e0, 0x0bf3, 0xd5a7, 0x9147,
-          0x06ca, 0x6351, 0x1429, 0x2967,
-          0x27b7, 0x0a85, 0x2e1b, 0x2138,
-          0x4d2c, 0x6dfc, 0x5338, 0x0d13,
-          0x650a, 0x7354, 0x766a, 0x0abb,
-          0x81c2, 0xc92e, 0x9272, 0x2c85,
-          0xa2bf, 0xe8a1, 0xa81a, 0x664b,
-          0xc24b, 0x8b70, 0xc76c, 0x51a3,
-          0xd192, 0xe819, 0xd699, 0x0624,
-          0xf40e, 0x3585, 0x106a, 0xa070,
-          0x19a4, 0xc116, 0x1e37, 0x6c08,
-          0x2748, 0x774c, 0x34b0, 0xbcb5,
-          0x391c, 0x0cb3, 0x4ed8, 0xaa4a,
-          0x5b9c, 0xca4f, 0x682e, 0x6ff3,
-          0x748f, 0x82ee, 0x78a5, 0x636f,
-          0x84c8, 0x7814, 0x8cc7, 0x0208,
-          0x90be, 0xfffa, 0xa450, 0x6ceb,
-          0xbef9, 0xa3f7, 0xc671, 0x78f2];
+var k = new Uint8Array([
+          0x42, 0x8a, 0x2f, 0x98, 0x71, 0x37, 0x44, 0x91,
+          0xb5, 0xc0, 0xfb, 0xcf, 0xe9, 0xb5, 0xdb, 0xa5,
+          0x39, 0x56, 0xc2, 0x5b, 0x59, 0xf1, 0x11, 0xf1,
+          0x92, 0x3f, 0x82, 0xa4, 0xab, 0x1c, 0x5e, 0xd5,
+          0xd8, 0x07, 0xaa, 0x98, 0x12, 0x83, 0x5b, 0x01,
+          0x24, 0x31, 0x85, 0xbe, 0x55, 0x0c, 0x7d, 0xc3,
+          0x72, 0xbe, 0x5d, 0x74, 0x80, 0xde, 0xb1, 0xfe,
+          0x9b, 0xdc, 0x06, 0xa7, 0xc1, 0x9b, 0xf1, 0x74,
+          0xe4, 0x9b, 0x69, 0xc1, 0xef, 0xbe, 0x47, 0x86,
+          0x0f, 0xc1, 0x9d, 0xc6, 0x24, 0x0c, 0xa1, 0xcc,
+          0x2d, 0xe9, 0x2c, 0x6f, 0x4a, 0x74, 0x84, 0xaa,
+          0x5c, 0xb0, 0xa9, 0xdc, 0x76, 0xf9, 0x88, 0xda,
+          0x98, 0x3e, 0x51, 0x52, 0xa8, 0x31, 0xc6, 0x6d,
+          0xb0, 0x03, 0x27, 0xc8, 0xbf, 0x59, 0x7f, 0xc7,
+          0xc6, 0xe0, 0x0b, 0xf3, 0xd5, 0xa7, 0x91, 0x47,
+          0x06, 0xca, 0x63, 0x51, 0x14, 0x29, 0x29, 0x67,
+          0x27, 0xb7, 0x0a, 0x85, 0x2e, 0x1b, 0x21, 0x38,
+          0x4d, 0x2c, 0x6d, 0xfc, 0x53, 0x38, 0x0d, 0x13,
+          0x65, 0x0a, 0x73, 0x54, 0x76, 0x6a, 0x0a, 0xbb,
+          0x81, 0xc2, 0xc9, 0x2e, 0x92, 0x72, 0x2c, 0x85,
+          0xa2, 0xbf, 0xe8, 0xa1, 0xa8, 0x1a, 0x66, 0x4b,
+          0xc2, 0x4b, 0x8b, 0x70, 0xc7, 0x6c, 0x51, 0xa3,
+          0xd1, 0x92, 0xe8, 0x19, 0xd6, 0x99, 0x06, 0x24,
+          0xf4, 0x0e, 0x35, 0x85, 0x10, 0x6a, 0xa0, 0x70,
+          0x19, 0xa4, 0xc1, 0x16, 0x1e, 0x37, 0x6c, 0x08,
+          0x27, 0x48, 0x77, 0x4c, 0x34, 0xb0, 0xbc, 0xb5,
+          0x39, 0x1c, 0x0c, 0xb3, 0x4e, 0xd8, 0xaa, 0x4a,
+          0x5b, 0x9c, 0xca, 0x4f, 0x68, 0x2e, 0x6f, 0xf3,
+          0x74, 0x8f, 0x82, 0xee, 0x78, 0xa5, 0x63, 0x6f,
+          0x84, 0xc8, 0x78, 0x14, 0x8c, 0xc7, 0x02, 0x08,
+          0x90, 0xbe, 0xff, 0xfa, 0xa4, 0x50, 0x6c, 0xeb,
+          0xbe, 0xf9, 0xa3, 0xf7, 0xc6, 0x71, 0x78, 0xf2
+]);
 
 var gl;
 var _ = {
@@ -115,6 +117,13 @@ function initFramebuffers() {
 
 function initTextures() {
     //Init two texture for ping ponging
+    _.textures.K = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, _.textures.K);
+
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 64, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, k);
+
     /* First texture */
     _.textures.primary = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, _.textures.primary);
@@ -173,23 +182,23 @@ function initTextures() {
 
 function initBuffers() {
     //Convert pixel coordinate to vertex (-1, 1)
-//     var x = 32;
-//     var nX = x / textureSize;
-//     var vX = (nX * 2) - 1
-//
-//     var y = 2;
-//     var nY = y / textureSize;
-//     var vY = (nY * 2) - 1;
-// //
+    var x = 80;
+    var nX = x / textureSize;
+    var vX = (nX * 2) - 1
+
+    var y = 2;
+    var nY = y / textureSize;
+    var vY = (nY * 2) - 1;
+
     var vertices = new Float32Array([
-        1,  1,
-       -1,  1,
-        1, -1,
-       -1, -1
-        //  vX, -1,
-        // -1, -1,
-        //  vX, vY,
-        // -1, vY
+       //  1,  1,
+       // -1,  1,
+       //  1, -1,
+       // -1, -1
+         vX, -1,
+        -1, -1,
+         vX, vY,
+        -1, vY
     ]); //Square to cover whole canvas
 
     _.buffers.vertices = gl.createBuffer();
@@ -203,6 +212,7 @@ function initBuffers() {
 function initPrograms() {
     _.programs["init-sha256"] = initSHA256Program();
     _.programs["fill-sha256-work"] = fillSHA256workProgram();
+    _.programs["compute-sha256"] = computeSHA256Program();
 }
 
 /**
@@ -248,7 +258,6 @@ function fillSHA256workProgram() {
     var program = establishProgram("shaders/default-vs.js", "shaders/fill-sha256-work.fs.js");
 
     var locations = {
-        K:     gl.getUniformLocation(program, "K"),
         round: gl.getUniformLocation(program, "round"),
         sampler: gl.getUniformLocation(program, "uSampler")
     };
@@ -263,13 +272,53 @@ function fillSHA256workProgram() {
         use: function() { gl.useProgram(program); },
         render: function(round) {
             gl.uniform1f(locations.round, round);
-            gl.uniform2fv(locations.K, k);
 
             gl.bindBuffer(gl.ARRAY_BUFFER, _.buffers.vertices);
             gl.enableVertexAttribArray(attributes.position);
             gl.vertexAttribPointer(attributes.position, 2, gl.FLOAT, false, 0, 0);
 
             gl.uniform1i(locations.sampler, 0);
+
+            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+            gl.disableVertexAttribArray(attributes.position);
+        }
+    };
+
+}
+/**
+* Shader uses 2 rounds to execute main SHA256 computation
+* Call this shader 32 times (32*2 = 64 total rounds) with rounds 0..31
+*/
+function computeSHA256Program() {
+    var program = establishProgram("shaders/default-vs.js", "shaders/compute-sha256.fs.js");
+
+    var locations = {
+        round: gl.getUniformLocation(program, "round"),
+        sampler: gl.getUniformLocation(program, "uSampler"),
+        kSampler: gl.getUniformLocation(program, "kSampler")
+    };
+    var attributes = {
+        position: gl.getAttribLocation(program, "aPosition")
+    }
+
+    return {
+        P: program,
+        L: locations,
+        A: attributes,
+        use: function() { gl.useProgram(program); },
+        render: function(round) {
+            gl.uniform1f(locations.round, round);
+
+            gl.bindBuffer(gl.ARRAY_BUFFER, _.buffers.vertices);
+            gl.enableVertexAttribArray(attributes.position);
+            gl.vertexAttribPointer(attributes.position, 2, gl.FLOAT, false, 0, 0);
+
+            gl.uniform1i(locations.sampler, 0);
+
+            gl.activeTexture(gl.TEXTURE1);
+            gl.bindTexture(gl.TEXTURE_2D, _.textures.K);
+            gl.uniform1i(locations.kSampler, 1);
 
             gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
@@ -329,5 +378,18 @@ $(function() {
     gl.readPixels(0, 0, 80, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
 
     match("Fill work array", "6a09e667bb67ae853c6ef372a54ff53a510e527f9b05688c1f83d9ab5be0cd1902000000ff1fd715a981626682fd8d73afda09d825722d6ba5f665b1be6ed400242f7b650c3623c0f087fefdeefcd4c84d916a511551425fabaf52d55d559649132969c1ea9d2b5fc66142e4286085f9a809188e1204725d5679a7f0990ee0b0ff4f1190994e0ec53cde910f4f5f765de6567a992c59a1fc3366dcb41ba268c94a89248822f0ddeea2aae349d26c04c5a73bcc704bd9e9badbfb81d6a803e3e7eed17376873fb43b161ab8b2d4f6d995d327c01d9949ac1bff15a9c23f02ee9f2310307fa361b07f26b29ace9a61ea6a663f0fc66a0b4b49a3aa724b44c56638945edb519680528deeb6d5ea302e86293cc3d327c13df5c75a0cf0d50e09105f6a09e667bb67ae853c6ef372a54ff53a510e527f9b05688c1f83d9ab5be0cd19", printBuffer(buf, 80));
+
+    _.programs['compute-sha256'].use();
+
+
+    for(var i = 0; i < 32; i++) {
+        _.textures.swap();
+        _.programs['compute-sha256'].render(i);
+    }
+
+    gl.readPixels(0, 0, 80, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+
+    // f577ed68bb
+    match("Hash computing", "9345e1bdf4360b3b9c13f5656a85df67129cd02e38b264e1a3b22b55a7fdfd5502000000ff1fd715a981626682fd8d73afda09d825722d6ba5f665b1be6ed400242f7b650c3623c0f087fefdeefcd4c84d916a511551425fabaf52d55d559649132969c1ea9d2b5fc66142e4286085f9a809188e1204725d5679a7f0990ee0b0ff4f1190994e0ec53cde910f4f5f765de6567a992c59a1fc3366dcb41ba268c94a89248822f0ddeea2aae349d26c04c5a73bcc704bd9e9badbfb81d6a803e3e7eed17376873fb43b161ab8b2d4f6d995d327c01d9949ac1bff15a9c23f02ee9f2310307fa361b07f26b29ace9a61ea6a663f0fc66a0b4b49a3aa724b44c56638945edb519680528deeb6d5ea302e86293cc3d327c13df5c75a0cf0d50e09105f6a09e667bb67ae853c6ef372a54ff53a510e527f9b05688c1f83d9ab5be0cd19", printBuffer(buf, 80));
 
 });
