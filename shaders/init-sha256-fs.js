@@ -46,24 +46,28 @@ void main () {
         return;
     }
 
+    //work SHA256 hash area
     if ( offset < 8 ) {
         for(int i = 0; i < 8; i++) {
             if ( i == offset ) {
                 gl_FragColor = toRGBA(H[i]);
             }
         }
+    //SHA256 work elements
     } else if ( offset < 24 ) {
         for(int i = 8; i < 24; i++) {
             if ( i == offset ) {
                 gl_FragColor = toRGBA(header[i-8]);
             }
         }
+    //Header hash round 1
     } else if ( offset >= 72 && offset < 80 ) {
         for(int i = 72; i < 80; i++) {
             if ( i == offset ) {
                 gl_FragColor = toRGBA(H[i-72]);
             }
         }
+    //Padded and nonced header second part
     } else if ( offset >= 80 && offset < 96 ) {
         if ( offset < 83 ) {
             //Copy rest three words
@@ -84,10 +88,26 @@ void main () {
         } else {
             gl_FragColor = vec4(0.);
         }
+    //Mask for iKey
     } else if ( offset >= 96 && offset < 112 ) {
         gl_FragColor = toRGBA(vec2(Ox3636));
+    //Mask for iKey
     } else if ( offset >= 112 && offset < 128 ) {
         gl_FragColor = toRGBA(vec2(Ox5c5c));
+    //iKey hash initial values
+    } else if ( offset >= 136 && offset < 144 ) {
+        for(int i = 136; i < 144; i++) {
+            if ( i == offset ) {
+                gl_FragColor = toRGBA(H[i-136]);
+            }
+        }
+    //oKey hash initial values
+    } else if ( offset >= 144 && offset < 152 ) {
+        for(int i = 144; i < 152; i++) {
+            if ( i == offset ) {
+                gl_FragColor = toRGBA(H[i-144]);
+            }
+        }
     } else {
         discard;
     }

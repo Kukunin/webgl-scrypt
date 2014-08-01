@@ -432,7 +432,7 @@ $(function() {
     _.programs['init-sha256'].use();
     _.programs['init-sha256'].render(header_bin.slice(0, 38), nonce_bin);
 
-    gl.readPixels(0, 0, 128, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+    gl.readPixels(0, 0, 80, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
     match("Initial round", "6a09e667bb67ae853c6ef372a54ff53a510e527f9b05688c1f83d9ab5be0cd1902000000ff1fd715a981626682fd8d73afda09d825722d6ba5f665b1be6ed400242f7b650c3623c0f087fefdeefcd4c84d916a511551425fabaf52d55d5596490000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000006a09e667bb67ae853c6ef372a54ff53a510e527f9b05688c1f83d9ab5be0cd19", printBuffer(buf, 80));
 
     gl.readPixels(80, 0, 16, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
@@ -440,6 +440,9 @@ $(function() {
 
     gl.readPixels(96, 0, 32, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
     match("iKey and oKey masks", "363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636365c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c", printBuffer(buf, 32));
+
+    gl.readPixels(136, 0, 16, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+    match("iKey and oKey initial hashes", "6a09e667bb67ae853c6ef372a54ff53a510e527f9b05688c1f83d9ab5be0cd196a09e667bb67ae853c6ef372a54ff53a510e527f9b05688c1f83d9ab5be0cd19", printBuffer(buf, 16));
 
     _.programs['fill-sha256-work'].use();
 
@@ -518,11 +521,47 @@ $(function() {
 
     /* Create oKey */
     _.textures.swap();
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     _.programs['copier'].render(128, 112, 8, _.XOR_MODE);
 
     gl.readPixels(96, 0, 32, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
     match("iKey/oKey", "62d4ca3c87e6f312e478d70a3bd8047140fe4ee22f027cf56daf6076dc87012a363636363636363636363636363636363636363636363636363636363636363608bea056ed8c99788e12bd6051b26e1b2a9424884568169f07c50a1cb6ed6b405c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c", printBuffer(buf, 32));
+
+    /* Prepare to first round of SHA-256 of iKey*/
+    _.textures.swap();
+    //Copy first round hash to initial position
+    _.programs['copier'].render(136, 0, 8, _.COPY_MODE);
+
+    gl.readPixels(0, 0, 8, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+    match("Initial hash", "6a09e667bb67ae853c6ef372a54ff53a510e527f9b05688c1f83d9ab5be0cd19", printBuffer(buf, 8));
+
+    /* Copy the iKey to work array */
+    _.textures.swap();
+    _.programs['copier'].render(96, 8, 16, _.COPY_MODE);
+
+    /* Compute and fill work elements */
+    _.programs['fill-sha256-work'].use();
+
+    for(var i = 0; i < 24; i++) {
+        _.textures.swap();
+        _.programs['fill-sha256-work'].render(i);
+    }
+
+    /* Compute the hash */
+    _.programs['compute-sha256'].use();
+
+    for(var i = 0; i < 32; i++) {
+        _.textures.swap();
+        _.programs['compute-sha256'].render(i);
+    }
+
+    /* Copy the result to key_hash block */
+    _.programs['copier'].use();
+
+    _.textures.swap();
+    _.programs['copier'].render(0, 136, 8, _.SUM_MODE);
+
+    gl.readPixels(136, 0, 8, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+    match("iKey base hash", "1810219db381a5578d2a3163f1c8300d31dffbcd47d7cad0c2f2be550f287816", printBuffer(buf, 8));
 
     var msecTime = (((new Date()).getTime())-startTime);
     console.log("Running time: " + msecTime + "ms");
