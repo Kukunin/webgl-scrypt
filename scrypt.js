@@ -46,9 +46,10 @@ var _ = {
     textures: {},
     programs: {},
 
-    COPY_MODE: 1,
-    SUM_MODE:  2,
-    XOR_MODE:  3
+    COPY_MODE:  1,
+    SUM_MODE:   2,
+    XOR_MODE:   3,
+    VALUE_MODE: 4
 }
 
 function loadResource(n) {
@@ -337,7 +338,17 @@ function computeSHA256Program() {
 
 /**
 * Shader copies N pixels from one source to the destination
-* Has four uniforms: src_offset, dst_offset, length and sum flag
+*
+* @arg source      Source offset
+* @arg destination Destination offset
+* @arg length      Length of pixels to copy
+* @arg mode        Copy mode:
+*       COPY_MODE  - Just copy pixels from src to dst
+*       SUM_MODE   - Sum src and dst pixel and write to dst
+*       XOR_MODE   - xor src and dst pixel and write to dst
+*       VALUE_MODE - Set dst pixel with passed value
+* @arg value       Value used in VALUE_MODE
+* src_offset, dst_offset, length and mode flag
 */
 function copierProgram() {
     var program = establishProgram("shaders/default-vs.js", "shaders/copier.fs.js");
@@ -347,6 +358,7 @@ function copierProgram() {
         destination: gl.getUniformLocation(program, "destination"),
         length:      gl.getUniformLocation(program, "length"),
         mode:        gl.getUniformLocation(program, "mode"),
+        value:       gl.getUniformLocation(program, "value"),
         sampler:     gl.getUniformLocation(program, "uSampler"),
     };
     var attributes = {
@@ -358,7 +370,7 @@ function copierProgram() {
         L: locations,
         A: attributes,
         use: function() { gl.useProgram(program); },
-        render: function(src, dst, length, mode) {
+        render: function(src, dst, length, mode, value) {
             gl.bindBuffer(gl.ARRAY_BUFFER, _.buffers.vertices);
             gl.enableVertexAttribArray(attributes.position);
             gl.vertexAttribPointer(attributes.position, 2, gl.FLOAT, false, 0, 0);
@@ -368,6 +380,9 @@ function copierProgram() {
             gl.uniform1f(locations.length, length);
             gl.uniform1i(locations.mode, mode);
             gl.uniform1i(locations.sampler, 0);
+            if( mode == _.VALUE_MODE ) {
+                gl.uniform2f(locations.value, value[0], value[1]);
+            }
 
             gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
