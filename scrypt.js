@@ -182,7 +182,7 @@ function initTextures() {
 
 function initBuffers() {
     //Convert pixel coordinate to vertex (-1, 1)
-    var x = 80;
+    var x = 1024;
     var nX = x / textureSize;
     var vX = (nX * 2) - 1
 
@@ -225,7 +225,8 @@ function initSHA256Program () {
 
     var locations = {
         H:       gl.getUniformLocation(program, "H"),
-        initial: gl.getUniformLocation(program, "initial")
+        header:  gl.getUniformLocation(program, "header"),
+        nonce:   gl.getUniformLocation(program, "base_nonce")
     };
     var attributes = {
         position: gl.getAttribLocation(program, "aPosition")
@@ -236,8 +237,9 @@ function initSHA256Program () {
         L: locations,
         A: attributes,
         use: function() { gl.useProgram(program); },
-        render: function(initial) {
-            gl.uniform2fv(locations.initial, initial);
+        render: function(header, nonce) {
+            gl.uniform2fv(locations.header, header);
+            gl.uniform2f(locations.nonce, nonce[0], nonce[1]);
             gl.uniform2fv(locations.H, h);
 
             gl.bindBuffer(gl.ARRAY_BUFFER, _.buffers.vertices);
@@ -397,24 +399,30 @@ $(function() {
     initTextures();
     initPrograms();
 
-    var buf = new Uint8Array(80 * 1 * 4);
+    var buf = new Uint8Array(128 * 1 * 4);
 
     console.log("Headers is " + header);
     var header_bin = ___.hex_to_uint16_array(header);
 
+    console.log("Nonce is " + nonce);
+    var nonce_bin = ___.hex_to_uint16_array(nonce.toString(16));
 
     var startTime = (new Date()).getTime();
 
     _.textures.swap();
     _.programs['init-sha256'].use();
-    _.programs['init-sha256'].render(header_bin.slice(0, 32));
+    _.programs['init-sha256'].render(header_bin.slice(0, 38), nonce_bin);
 
-    gl.readPixels(0, 0, 80, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
-
+    gl.readPixels(0, 0, 128, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
     match("Initial round", "6a09e667bb67ae853c6ef372a54ff53a510e527f9b05688c1f83d9ab5be0cd1902000000ff1fd715a981626682fd8d73afda09d825722d6ba5f665b1be6ed400242f7b650c3623c0f087fefdeefcd4c84d916a511551425fabaf52d55d5596490000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000006a09e667bb67ae853c6ef372a54ff53a510e527f9b05688c1f83d9ab5be0cd19", printBuffer(buf, 80));
 
-    _.programs['fill-sha256-work'].use();
+    gl.readPixels(80, 0, 16, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+    match("Padded header", "8ba5f869f139d55346e2021b00039bfc800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000280", printBuffer(buf, 16));
 
+    gl.readPixels(96, 0, 32, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+    match("iKey and oKey masks", "363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636365c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c", printBuffer(buf, 32));
+
+    _.programs['fill-sha256-work'].use();
 
     for(var i = 0; i < 24; i++) {
         _.textures.swap();

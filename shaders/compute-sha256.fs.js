@@ -4,9 +4,6 @@ precision mediump float;
 #define Ox10000 65536.0
 #define Ox8000  32768.0
 
-#define Ox5c5c 23644.0
-#define Ox3636 13878.0
-
 #define POW_2_01 2.0
 #define POW_2_02 4.0
 #define POW_2_03 8.0
