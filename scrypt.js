@@ -49,7 +49,18 @@ var _ = {
     COPY_MODE:  1,
     SUM_MODE:   2,
     XOR_MODE:   3,
-    VALUE_MODE: 4
+    VALUE_MODE: 4,
+
+    TMP_HASH_OFFSET:        0,
+    TMP_WORK_OFFSET:        8,
+    HEADER_HASH1_OFFSET:    72,
+    PADDED_HEADER_OFFSET:   80,
+    IKEY_OFFSET:            96,
+    OKEY_OFFSET:            112,
+    HMAC_KEY_HASH_OFFSET:   128,
+    IKEY_HASH1_OFFSET:      136,
+    OKEY_HASH1_OFFSET:      144,
+    INITIAL_HASH_OFFSET:    152
 }
 
 function loadResource(n) {
@@ -474,53 +485,53 @@ $(function() {
     /* initial tests */
     gl.readPixels(0, 0, 80, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
     match("Initial round", "6a09e667bb67ae853c6ef372a54ff53a510e527f9b05688c1f83d9ab5be0cd1902000000ff1fd715a981626682fd8d73afda09d825722d6ba5f665b1be6ed400242f7b650c3623c0f087fefdeefcd4c84d916a511551425fabaf52d55d5596490000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000006a09e667bb67ae853c6ef372a54ff53a510e527f9b05688c1f83d9ab5be0cd19", printBuffer(buf, 80));
-    gl.readPixels(80, 0, 16, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+    gl.readPixels(_.PADDED_HEADER_OFFSET, 0, 16, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
     match("Padded header", "8ba5f869f139d55346e2021b00039bfc800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000280", printBuffer(buf, 16));
-    gl.readPixels(96, 0, 32, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+    gl.readPixels(_.IKEY_OFFSET, 0, 32, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
     match("iKey and oKey masks", "363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636365c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c", printBuffer(buf, 32));
-    gl.readPixels(136, 0, 16, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+    gl.readPixels(_.IKEY_HASH1_OFFSET, 0, 16, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
     match("iKey and oKey initial hashes", "6a09e667bb67ae853c6ef372a54ff53a510e527f9b05688c1f83d9ab5be0cd196a09e667bb67ae853c6ef372a54ff53a510e527f9b05688c1f83d9ab5be0cd19", printBuffer(buf, 16));
 
     /* First round for key hash */
-    sha256_round(72, true);
-    gl.readPixels(72, 0, 8, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+    sha256_round(_.HEADER_HASH1_OFFSET, true);
+    gl.readPixels(_.HEADER_HASH1_OFFSET, 0, 8, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
     match("Header base hash", "fd4fc824af9db9c0d882e8d70fd5d4a163ab22add3b7cd6dc336050003deca6e", printBuffer(buf, 8));
 
     /* Final round for key hash */
     //Copy first round hash to destination position
     _.textures.swap();
-    _.programs['copier'].render(72, 128, 8, _.COPY_MODE);
+    _.programs['copier'].render(_.HEADER_HASH1_OFFSET, _.HMAC_KEY_HASH_OFFSET, 8, _.COPY_MODE);
     //Copy padded header last part to work arrays
     _.textures.swap();
-    _.programs['copier'].render(80, 8, 16, _.COPY_MODE);
+    _.programs['copier'].render(_.PADDED_HEADER_OFFSET, _.TMP_WORK_OFFSET, 16, _.COPY_MODE);
     sha256_round(128);
 
-    gl.readPixels(128, 0, 8, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+    gl.readPixels(_.HMAC_KEY_HASH_OFFSET, 0, 8, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
     match("Final hash", "54e2fc0ab1d0c524d24ee13c0dee324776c878d419344ac35b995640eab1371c", printBuffer(buf, 8));
 
     /* Create iKey */
     _.textures.swap();
-    _.programs['copier'].render(128, 96, 8, _.XOR_MODE);
+    _.programs['copier'].render(_.HMAC_KEY_HASH_OFFSET, _.IKEY_OFFSET, 8, _.XOR_MODE);
 
     /* Create oKey */
     _.textures.swap();
-    _.programs['copier'].render(128, 112, 8, _.XOR_MODE);
+    _.programs['copier'].render(_.HMAC_KEY_HASH_OFFSET, _.OKEY_OFFSET, 8, _.XOR_MODE);
 
-    gl.readPixels(96, 0, 32, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+    gl.readPixels(_.IKEY_OFFSET, 0, 32, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
     match("iKey/oKey", "62d4ca3c87e6f312e478d70a3bd8047140fe4ee22f027cf56daf6076dc87012a363636363636363636363636363636363636363636363636363636363636363608bea056ed8c99788e12bd6051b26e1b2a9424884568169f07c50a1cb6ed6b405c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c", printBuffer(buf, 32));
 
     /* Create iKey initial hash */
     _.textures.swap();
-    _.programs['copier'].render(96, 8, 16, _.COPY_MODE);
-    sha256_round(136);
-    gl.readPixels(136, 0, 8, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+    _.programs['copier'].render(_.IKEY_OFFSET, _.TMP_WORK_OFFSET, 16, _.COPY_MODE);
+    sha256_round(_.IKEY_HASH1_OFFSET);
+    gl.readPixels(_.IKEY_HASH1_OFFSET, 0, 8, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
     match("iKey base hash", "1810219db381a5578d2a3163f1c8300d31dffbcd47d7cad0c2f2be550f287816", printBuffer(buf, 8));
 
     /* Create oKey initial hash */
     _.textures.swap();
-    _.programs['copier'].render(112, 8, 16, _.COPY_MODE);
-    sha256_round(144);
-    gl.readPixels(144, 0, 8, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+    _.programs['copier'].render(_.OKEY_OFFSET, _.TMP_WORK_OFFSET, 16, _.COPY_MODE);
+    sha256_round(_.OKEY_HASH1_OFFSET);
+    gl.readPixels(_.OKEY_HASH1_OFFSET, 0, 8, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
     match("oKey base hash", "14d07616f180c5531ea198c14c20997445b7cf0cfc90d3650e59c6a1af3626a2", printBuffer(buf, 8));
 
     var msecTime = (((new Date()).getTime())-startTime);

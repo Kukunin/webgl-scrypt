@@ -118,7 +118,8 @@ vec2 e(in float offset) {
     return vec2(x, y);
 }
 
-#define WORK_BLOCK_OFFSET 8.
+#define TMP_WORK_OFFSET 8.
+#define PREDEFINED_BLOCKS 16.
 #define WORKS_PER_ROUND 2.
 
 void main () {
@@ -127,15 +128,15 @@ void main () {
     float offset = mod(position, 65984.);
     float block = floor(position / 65984.);
 
-    inBlockOffset = 16. + (round * WORKS_PER_ROUND);
-    if ( offset >= (WORK_BLOCK_OFFSET + inBlockOffset) && offset < (WORK_BLOCK_OFFSET + inBlockOffset + WORKS_PER_ROUND)) {
-        start = (block * 65984.) + WORK_BLOCK_OFFSET;
+    inBlockOffset = PREDEFINED_BLOCKS + (round * WORKS_PER_ROUND);
+    if ( offset >= (TMP_WORK_OFFSET + inBlockOffset) && offset < (TMP_WORK_OFFSET + inBlockOffset + WORKS_PER_ROUND)) {
+        start = (block * 65984.) + TMP_WORK_OFFSET;
 
         w[0] = blend(e(-16.), e(-15.), e(-7.), e(-2.));
         w[1] = blend(e(-15.), e(-14.), e(-6.), e(-1.));
 
         for (int i = 0; i < int(WORKS_PER_ROUND); i++ ) {
-            if ( offset == (WORK_BLOCK_OFFSET + inBlockOffset + float(i))) {
+            if ( offset == (TMP_WORK_OFFSET + inBlockOffset + float(i))) {
                 gl_FragColor = toRGBA(w[i]);
                 break;
             }

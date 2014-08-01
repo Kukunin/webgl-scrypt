@@ -167,8 +167,8 @@ vec2 K(in float offset) {
     return fromRGBA(texture2D(kSampler, vec2(offset/64., 0.)));
 }
 
-#define HASH_BLOCK_OFFSET 0.
-#define WORK_BLOCK_OFFSET 8.
+#define TMP_HASH_OFFSET 0.
+#define TMP_BLOCK_OFFSET 8.
 #define WORKS_PER_ROUND 2.
 
 void main () {
@@ -177,9 +177,9 @@ void main () {
     float offset = mod(position, 65984.);
     float block = floor(position / 65984.);
 
-    if ( offset >= HASH_BLOCK_OFFSET && offset < (HASH_BLOCK_OFFSET + 8.)) {
-        start = (block * 65984.) + HASH_BLOCK_OFFSET;
-        float rOffset = (round*WORKS_PER_ROUND) + HASH_BLOCK_OFFSET;
+    if ( offset >= TMP_HASH_OFFSET && offset < (TMP_HASH_OFFSET + 8.)) {
+        start = (block * 65984.) + TMP_HASH_OFFSET;
+        float rOffset = (round*WORKS_PER_ROUND) + TMP_HASH_OFFSET;
 
         vec2 t[8]; //Work array
         vec2 t1, t2;
@@ -192,7 +192,7 @@ void main () {
             _t2 = safe_add(_s0, _maj);
             _s1 = e1(t[4]);
             _ch = ch(t[4], t[5], t[6]);
-            _t1 = safe_add(safe_add(safe_add(safe_add(t[7], _s1), _ch), K(float(i)+rOffset)), e(float(i) + WORK_BLOCK_OFFSET + rOffset));
+            _t1 = safe_add(safe_add(safe_add(safe_add(t[7], _s1), _ch), K(float(i)+rOffset)), e(float(i) + TMP_BLOCK_OFFSET + rOffset));
 
             t[7] = t[6]; t[6] = t[5]; t[5] = t[4];
             t[4] = safe_add(t[3], _t1);
@@ -201,7 +201,7 @@ void main () {
         }
 
         for (int i = 0; i < 8; i++ ) {
-            if ( offset == (HASH_BLOCK_OFFSET + float(i))) {
+            if ( offset == (TMP_HASH_OFFSET + float(i))) {
                 gl_FragColor = toRGBA(t[i]);
                 break;
             }

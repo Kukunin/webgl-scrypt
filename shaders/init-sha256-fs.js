@@ -30,6 +30,26 @@ vec2 safe_add (in vec2 a, in vec2 b)
     return ret;
 }
 
+#define TMP_HASH_OFFSET          0
+#define TMP_HASH_OFFSET_END      8
+#define TMP_WORK_OFFSET          8
+#define TMP_WORK_OFFSET_END      24
+#define HEADER_HASH1_OFFSET      72
+#define HEADER_HASH1_OFFSET_END  80
+#define PADDED_HEADER_OFFSET     80
+#define PADDED_HEADER_OFFSET_END 96
+#define IKEY_OFFSET              96
+#define IKEY_OFFSET_END          112
+#define OKEY_OFFSET              112
+#define OKEY_OFFSET_END          128
+#define HMAC_KEY_HASH_OFFSET     128
+#define HMAC_KEY_HASH_OFFSET_END 136
+#define IKEY_HASH1_OFFSET        136
+#define IKEY_HASH1_OFFSET_END    144
+#define OKEY_HASH1_OFFSET        144
+#define OKEY_HASH1_OFFSET_END    152
+#define INITIAL_HASH_OFFSET      152
+#define INITIAL_HASH_OFFSET_END  160
 
 uniform vec2 H[8];
 uniform vec2 header[19];
@@ -46,66 +66,59 @@ void main () {
         return;
     }
 
-    //work SHA256 hash area
-    if ( offset < 8 ) {
-        for(int i = 0; i < 8; i++) {
+    if ( offset >= TMP_HASH_OFFSET && offset < TMP_HASH_OFFSET_END ) {
+        for(int i = TMP_HASH_OFFSET; i < TMP_HASH_OFFSET_END; i++) {
             if ( i == offset ) {
-                gl_FragColor = toRGBA(H[i]);
+                gl_FragColor = toRGBA(H[i-TMP_HASH_OFFSET]);
             }
         }
-    //SHA256 work elements
-    } else if ( offset < 24 ) {
-        for(int i = 8; i < 24; i++) {
+    } else if ( offset >= TMP_WORK_OFFSET && offset < TMP_WORK_OFFSET_END ) {
+        for(int i = TMP_WORK_OFFSET; i < TMP_WORK_OFFSET_END; i++) {
             if ( i == offset ) {
-                gl_FragColor = toRGBA(header[i-8]);
+                gl_FragColor = toRGBA(header[i-TMP_WORK_OFFSET]);
             }
         }
-    //Header hash round 1
-    } else if ( offset >= 72 && offset < 80 ) {
-        for(int i = 72; i < 80; i++) {
+    } else if ( offset >= HEADER_HASH1_OFFSET && offset < HEADER_HASH1_OFFSET_END ) {
+        for(int i = HEADER_HASH1_OFFSET; i < HEADER_HASH1_OFFSET_END; i++) {
             if ( i == offset ) {
-                gl_FragColor = toRGBA(H[i-72]);
+                gl_FragColor = toRGBA(H[i-HEADER_HASH1_OFFSET]);
             }
         }
-    //Padded and nonced header second part
-    } else if ( offset >= 80 && offset < 96 ) {
-        if ( offset < 83 ) {
+    } else if ( offset >= PADDED_HEADER_OFFSET && offset < PADDED_HEADER_OFFSET_END ) {
+        if ( offset < PADDED_HEADER_OFFSET + 3 ) {
             //Copy rest three words
-            for(int i = 80; i < 83; i++) {
+            for(int i = PADDED_HEADER_OFFSET; i < PADDED_HEADER_OFFSET + 3; i++) {
                 if ( i == offset ) {
-                    gl_FragColor = toRGBA(header[i-64]);
+                    gl_FragColor = toRGBA(header[i+16-PADDED_HEADER_OFFSET]);
                 }
             }
-        } else if ( offset == 83 ) {
+        } else if ( offset == PADDED_HEADER_OFFSET + 3 ) {
             //Set the nonce
             gl_FragColor = toRGBA(safe_add(base_nonce, vec2(0., block))).abgr;
-        } else if ( offset == 84 ) {
+        } else if ( offset == PADDED_HEADER_OFFSET + 4 ) {
             //last 1bit
             gl_FragColor = toRGBA(vec2(32768., 0.));
-        } else if ( offset == 95 ) {
+        } else if ( offset == PADDED_HEADER_OFFSET_END - 1 ) {
             //length of header in bits
             gl_FragColor = toRGBA(vec2(0., 640.));
         } else {
             gl_FragColor = vec4(0.);
         }
-    //Mask for iKey
-    } else if ( offset >= 96 && offset < 112 ) {
+    } else if ( offset >= IKEY_OFFSET && offset < IKEY_OFFSET_END ) {
         gl_FragColor = toRGBA(vec2(Ox3636));
-    //Mask for iKey
-    } else if ( offset >= 112 && offset < 128 ) {
+    } else if ( offset >= OKEY_OFFSET && offset < OKEY_OFFSET_END ) {
         gl_FragColor = toRGBA(vec2(Ox5c5c));
-    //iKey hash initial values
-    } else if ( offset >= 136 && offset < 144 ) {
-        for(int i = 136; i < 144; i++) {
+    } else if ( offset >= IKEY_HASH1_OFFSET && offset < IKEY_HASH1_OFFSET_END ) {
+        for(int i = IKEY_HASH1_OFFSET; i < IKEY_HASH1_OFFSET_END; i++) {
             if ( i == offset ) {
-                gl_FragColor = toRGBA(H[i-136]);
+                gl_FragColor = toRGBA(H[i-IKEY_HASH1_OFFSET]);
             }
         }
     //oKey hash initial values
-    } else if ( offset >= 144 && offset < 152 ) {
-        for(int i = 144; i < 152; i++) {
+    } else if ( offset >= OKEY_HASH1_OFFSET && offset < OKEY_HASH1_OFFSET_END ) {
+        for(int i = OKEY_HASH1_OFFSET; i < OKEY_HASH1_OFFSET_END; i++) {
             if ( i == offset ) {
-                gl_FragColor = toRGBA(H[i-144]);
+                gl_FragColor = toRGBA(H[i-OKEY_HASH1_OFFSET]);
             }
         }
     } else {
