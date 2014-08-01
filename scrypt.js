@@ -516,6 +516,13 @@ $(function() {
     gl.readPixels(136, 0, 8, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
     match("iKey base hash", "1810219db381a5578d2a3163f1c8300d31dffbcd47d7cad0c2f2be550f287816", printBuffer(buf, 8));
 
+    /* Create oKey initial hash */
+    _.textures.swap();
+    _.programs['copier'].render(112, 8, 16, _.COPY_MODE);
+    sha256_round(144);
+    gl.readPixels(144, 0, 8, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+    match("oKey base hash", "14d07616f180c5531ea198c14c20997445b7cf0cfc90d3650e59c6a1af3626a2", printBuffer(buf, 8));
+
     var msecTime = (((new Date()).getTime())-startTime);
     console.log("Running time: " + msecTime + "ms");
 });
