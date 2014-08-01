@@ -238,36 +238,21 @@ function initPrograms() {
 * And fills 16 predefined work elements
 */
 function initSHA256Program () {
-    var program = establishProgram("shaders/default-vs.js", "shaders/init-sha256-fs.js");
+    var locations = {};
+    return program("shaders/init-sha256-fs.js", function(program) {
+        locations = {
+            H:       gl.getUniformLocation(program, "H"),
+            header:  gl.getUniformLocation(program, "header"),
+            nonce:   gl.getUniformLocation(program, "base_nonce")
+        };
+        return locations;
+    }, function(once, header, nonce) {
+        gl.uniform2fv(locations.header, header);
+        gl.uniform2f(locations.nonce, nonce[0], nonce[1]);
+        gl.uniform2fv(locations.H, h);
 
-    var locations = {
-        H:       gl.getUniformLocation(program, "H"),
-        header:  gl.getUniformLocation(program, "header"),
-        nonce:   gl.getUniformLocation(program, "base_nonce")
-    };
-    var attributes = {
-        position: gl.getAttribLocation(program, "aPosition")
-    }
-
-    return {
-        P: program,
-        L: locations,
-        A: attributes,
-        use: function() { gl.useProgram(program); },
-        render: function(header, nonce) {
-            gl.uniform2fv(locations.header, header);
-            gl.uniform2f(locations.nonce, nonce[0], nonce[1]);
-            gl.uniform2fv(locations.H, h);
-
-            gl.bindBuffer(gl.ARRAY_BUFFER, _.buffers.vertices);
-            gl.enableVertexAttribArray(attributes.position);
-            gl.vertexAttribPointer(attributes.position, 2, gl.FLOAT, false, 0, 0);
-
-            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-
-            gl.disableVertexAttribArray(attributes.position);
-        }
-    };
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    });
 }
 
 /**
@@ -275,77 +260,44 @@ function initSHA256Program () {
 * Call this shader 24 times (24*2 = 48 without 16 predefined elements) with rounds 0..24
 */
 function fillSHA256workProgram() {
-    var program = establishProgram("shaders/default-vs.js", "shaders/fill-sha256-work.fs.js");
+    var locations = {};
+    return program("shaders/fill-sha256-work.fs.js", function(program) {
+        locations = {
+            round: gl.getUniformLocation(program, "round"),
+            sampler: gl.getUniformLocation(program, "uSampler")
+        };
+        return locations;
+    }, function(once, round) {
+        gl.uniform1f(locations.round, round);
+        gl.uniform1i(locations.sampler, 0);
 
-    var locations = {
-        round: gl.getUniformLocation(program, "round"),
-        sampler: gl.getUniformLocation(program, "uSampler")
-    };
-    var attributes = {
-        position: gl.getAttribLocation(program, "aPosition")
-    }
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
-    return {
-        P: program,
-        L: locations,
-        A: attributes,
-        use: function() { gl.useProgram(program); },
-        render: function(round) {
-            gl.uniform1f(locations.round, round);
-
-            gl.bindBuffer(gl.ARRAY_BUFFER, _.buffers.vertices);
-            gl.enableVertexAttribArray(attributes.position);
-            gl.vertexAttribPointer(attributes.position, 2, gl.FLOAT, false, 0, 0);
-
-            gl.uniform1i(locations.sampler, 0);
-
-            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-
-            gl.disableVertexAttribArray(attributes.position);
-        }
-    };
-
+    });
 }
 /**
 * Shader uses 2 rounds to execute main SHA256 computation
 * Call this shader 32 times (32*2 = 64 total rounds) with rounds 0..31
 */
 function computeSHA256Program() {
-    var program = establishProgram("shaders/default-vs.js", "shaders/compute-sha256.fs.js");
+    var locations = {};
+    return program("shaders/compute-sha256.fs.js", function(program) {
+        locations = {
+            round: gl.getUniformLocation(program, "round"),
+            sampler: gl.getUniformLocation(program, "uSampler"),
+            kSampler: gl.getUniformLocation(program, "kSampler")
+        };
+        return locations;
+    }, function(once, round) {
+        gl.uniform1f(locations.round, round);
+        gl.uniform1i(locations.sampler, 0);
 
-    var locations = {
-        round: gl.getUniformLocation(program, "round"),
-        sampler: gl.getUniformLocation(program, "uSampler"),
-        kSampler: gl.getUniformLocation(program, "kSampler")
-    };
-    var attributes = {
-        position: gl.getAttribLocation(program, "aPosition")
-    }
+        gl.activeTexture(gl.TEXTURE1);
+        gl.bindTexture(gl.TEXTURE_2D, _.textures.K);
+        gl.uniform1i(locations.kSampler, 1);
 
-    return {
-        P: program,
-        L: locations,
-        A: attributes,
-        use: function() { gl.useProgram(program); },
-        render: function(round) {
-            gl.uniform1f(locations.round, round);
-
-            gl.bindBuffer(gl.ARRAY_BUFFER, _.buffers.vertices);
-            gl.enableVertexAttribArray(attributes.position);
-            gl.vertexAttribPointer(attributes.position, 2, gl.FLOAT, false, 0, 0);
-
-            gl.uniform1i(locations.sampler, 0);
-
-            gl.activeTexture(gl.TEXTURE1);
-            gl.bindTexture(gl.TEXTURE_2D, _.textures.K);
-            gl.uniform1i(locations.kSampler, 1);
-
-            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-
-            gl.disableVertexAttribArray(attributes.position);
-        }
-    };
-
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    });
 }
 
 /**
@@ -363,40 +315,55 @@ function computeSHA256Program() {
 * src_offset, dst_offset, length and mode flag
 */
 function copierProgram() {
-    var program = establishProgram("shaders/default-vs.js", "shaders/copier.fs.js");
+    var locations = {};
+    return program("shaders/copier.fs.js", function(program) {
+        locations = {
+            source:      gl.getUniformLocation(program, "source"),
+            destination: gl.getUniformLocation(program, "destination"),
+            length:      gl.getUniformLocation(program, "length"),
+            mode:        gl.getUniformLocation(program, "mode"),
+            value:       gl.getUniformLocation(program, "value"),
+            sampler:     gl.getUniformLocation(program, "uSampler"),
+        };
+        return locations;
+    }, function(once, src, dst, length, mode, value) {
+        gl.uniform1f(locations.source, src);
+        gl.uniform1f(locations.destination, dst);
+        gl.uniform1f(locations.length, length);
+        gl.uniform1i(locations.mode, mode);
+        gl.uniform1i(locations.sampler, 0);
+        if( mode == _.VALUE_MODE ) {
+            gl.uniform2f(locations.value, value[0], value[1]);
+        }
 
-    var locations = {
-        source:      gl.getUniformLocation(program, "source"),
-        destination: gl.getUniformLocation(program, "destination"),
-        length:      gl.getUniformLocation(program, "length"),
-        mode:        gl.getUniformLocation(program, "mode"),
-        value:       gl.getUniformLocation(program, "value"),
-        sampler:     gl.getUniformLocation(program, "uSampler"),
-    };
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    });
+}
+
+function program(fragment_code, locations, render) {
+    var program = establishProgram("shaders/default-vs.js", fragment_code);
+
+    var locations = locations(program);
     var attributes = {
         position: gl.getAttribLocation(program, "aPosition")
     }
+
+    var once = false;
 
     return {
         P: program,
         L: locations,
         A: attributes,
-        use: function() { gl.useProgram(program); },
-        render: function(src, dst, length, mode, value) {
+        use: function() {
+            gl.useProgram(program);
+            once = false;
+        },
+        render: function() {
             gl.bindBuffer(gl.ARRAY_BUFFER, _.buffers.vertices);
             gl.enableVertexAttribArray(attributes.position);
             gl.vertexAttribPointer(attributes.position, 2, gl.FLOAT, false, 0, 0);
 
-            gl.uniform1f(locations.source, src);
-            gl.uniform1f(locations.destination, dst);
-            gl.uniform1f(locations.length, length);
-            gl.uniform1i(locations.mode, mode);
-            gl.uniform1i(locations.sampler, 0);
-            if( mode == _.VALUE_MODE ) {
-                gl.uniform2f(locations.value, value[0], value[1]);
-            }
-
-            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+            render.apply(this, [once].concat(Array.prototype.slice.call(arguments, 0)));
 
             gl.disableVertexAttribArray(attributes.position);
         }
