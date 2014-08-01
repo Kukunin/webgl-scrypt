@@ -39,6 +39,28 @@ var k = new Uint8Array([
           0xbe, 0xf9, 0xa3, 0xf7, 0xc6, 0x71, 0x78, 0xf2
 ]);
 
+//Pixels
+var salsa = new Uint8Array([
+        //First part
+        0, 4, 12, 8,     0, 3, 13, 9,
+        0, 2, 14, 10,    0, 1, 15, 11,
+        0, 1, 0,  12,    0, 4, 1,  13,
+        0, 3, 2,  14,    0, 2, 3,  15,
+        0, 2, 4,  0,     0, 1, 5,  1,
+        0, 4, 6,  2,     0, 3, 7,  3,
+        0, 3, 8,  4,     0, 2, 9,  5,
+        0, 1, 10, 6,     0, 4, 11, 7,
+        //Second part
+        0, 4, 3,  2,     0, 1, 0,  3,
+        0, 2, 1,  0,     0, 3, 2,  1,
+        0, 3, 7,  6,     0, 4, 4,  7,
+        0, 1, 5,  4,     0, 2, 6,  5,
+        0, 2, 11, 10,    0, 3, 8,  11,
+        0, 4, 9,  8,     0, 1, 10, 9,
+        0, 1, 15, 14,    0, 2, 12, 15,
+        0, 3, 13, 12,    0, 4, 14, 13
+]);
+
 var gl;
 var _ = {
     buffers: {},
@@ -138,7 +160,14 @@ function initFramebuffers() {
 }
 
 function initTextures() {
-    //Init two texture for ping ponging
+    _.textures.salsa = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, _.textures.salsa);
+
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    console.log(salsa.length);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 16, 2, 0, gl.RGBA, gl.UNSIGNED_BYTE, salsa);
+
     _.textures.K = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, _.textures.K);
 
@@ -146,6 +175,7 @@ function initTextures() {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 64, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, k);
 
+    //Init two texture for ping ponging
     /* First texture */
     _.textures.primary = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, _.textures.primary);
@@ -236,6 +266,7 @@ function initPrograms() {
     _.programs["fill-sha256-work"] = fillSHA256workProgram();
     _.programs["compute-sha256"] = computeSHA256Program();
     _.programs["copier"] = copierProgram();
+    _.programs["salsa"] = salsaProgram();
 }
 
 /**
@@ -349,6 +380,27 @@ function copierProgram() {
         if( mode == _.HWORK_MODE ) {
             gl.uniform2f(locations.value, 0, value);
         }
+
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    });
+}
+
+function salsaProgram() {
+    var locations = {};
+    return program("shaders/salsa.fs.js", function(program) {
+        locations = {
+            round:       gl.getUniformLocation(program, "round"),
+            sampler:     gl.getUniformLocation(program, "uSampler"),
+            kSampler:    gl.getUniformLocation(program, "kSampler")
+        };
+        return locations;
+    }, function(once, round) {
+        gl.uniform1i(locations.sampler, 0);
+        gl.uniform1f(locations.round, round);
+
+        gl.activeTexture(gl.TEXTURE1);
+        gl.bindTexture(gl.TEXTURE_2D, _.textures.salsa);
+        gl.uniform1i(locations.kSampler, 1);
 
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     });
@@ -549,6 +601,15 @@ $(function() {
     fillScryptX();
     gl.readPixels(_.SCRYPT_X_OFFSET, 0, 32, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
     match("Scrypt X", "65e8bba22ac94d38e28aa9b7f3005501abb5bad0a01ddd9e0ff0b241cea4b85163a5c4366f372bb6aff7ecf17a377087dfa2f06185cccfc5454fa183b0a61179ce4a765393e2605646d993b7348dc902203e59f65510feb509c448cf12895a6e228989e52be2fc021ca36fd4d8342ecaabd4fe15feada69d114728f4dd77033c", printBuffer(buf, 32));
+
+    _.programs['salsa'].use();
+    for (var i = 0; i < 4; i++) {
+        _.textures.swap();
+        _.programs['salsa'].render(i + 1);
+    }
+
+    gl.readPixels(_.SCRYPT_X_OFFSET, 0, 32, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+    match("Scrypt X Half salsa", "ce202c916778a96a12c133769dc155146e63bb72f884683d227aea390069a2cdfb4bed9e1ca240d3d94b380124cb43422a80fd5405f02cbcb10038dc289a85aace4a765393e2605646d993b7348dc902203e59f65510feb509c448cf12895a6e228989e52be2fc021ca36fd4d8342ecaabd4fe15feada69d114728f4dd77033c", printBuffer(buf, 32));
 
     var msecTime = (((new Date()).getTime())-startTime);
     console.log("Running time: " + msecTime + "ms");
