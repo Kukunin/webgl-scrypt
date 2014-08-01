@@ -135,6 +135,12 @@ void main () {
                 gl_FragColor = toRGBA(H[i-OKEY_HASH1_OFFSET]);
             }
         }
+    } else if ( offset >= INITIAL_HASH_OFFSET && offset < INITIAL_HASH_OFFSET_END ) {
+        for(int i = INITIAL_HASH_OFFSET; i < INITIAL_HASH_OFFSET_END; i++) {
+            if ( i == offset ) {
+                gl_FragColor = toRGBA(H[i-INITIAL_HASH_OFFSET]);
+            }
+        }
     } else {
         discard;
     }
