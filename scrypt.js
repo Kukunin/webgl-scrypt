@@ -213,6 +213,7 @@ function initPrograms() {
     _.programs["init-sha256"] = initSHA256Program();
     _.programs["fill-sha256-work"] = fillSHA256workProgram();
     _.programs["compute-sha256"] = computeSHA256Program();
+    _.programs["copier"] = copierProgram();
 }
 
 /**
@@ -327,6 +328,48 @@ function computeSHA256Program() {
     };
 
 }
+
+/**
+* Shader copies N pixels from one source to the destination
+* Has four uniforms: src_offset, dst_offset, length and sum flag
+*/
+function copierProgram() {
+    var program = establishProgram("shaders/default-vs.js", "shaders/copier.fs.js");
+
+    var locations = {
+        source:      gl.getUniformLocation(program, "source"),
+        destination: gl.getUniformLocation(program, "destination"),
+        length:      gl.getUniformLocation(program, "length"),
+        sum:         gl.getUniformLocation(program, "sum"),
+        sampler:     gl.getUniformLocation(program, "uSampler"),
+    };
+    var attributes = {
+        position: gl.getAttribLocation(program, "aPosition")
+    }
+
+    return {
+        P: program,
+        L: locations,
+        A: attributes,
+        use: function() { gl.useProgram(program); },
+        render: function(src, dst, length, sum) {
+            gl.bindBuffer(gl.ARRAY_BUFFER, _.buffers.vertices);
+            gl.enableVertexAttribArray(attributes.position);
+            gl.vertexAttribPointer(attributes.position, 2, gl.FLOAT, false, 0, 0);
+
+            gl.uniform1f(locations.source, src);
+            gl.uniform1f(locations.destination, dst);
+            gl.uniform1f(locations.length, length);
+            gl.uniform1f(locations.sum, !!sum);
+            gl.uniform1i(locations.sampler, 0);
+
+            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+            gl.disableVertexAttribArray(attributes.position);
+        }
+    };
+}
+
 function printBuffer(buf, length) {
     var result = [];
     for(var i = 0; i < length*4; i+=2) {
@@ -395,6 +438,18 @@ $(function() {
     // f577ed68bb
     match("Hash computing", "9345e1bdf4360b3b9c13f5656a85df67129cd02e38b264e1a3b22b55a7fdfd5502000000ff1fd715a981626682fd8d73afda09d825722d6ba5f665b1be6ed400242f7b650c3623c0f087fefdeefcd4c84d916a511551425fabaf52d55d559649132969c1ea9d2b5fc66142e4286085f9a809188e1204725d5679a7f0990ee0b0ff4f1190994e0ec53cde910f4f5f765de6567a992c59a1fc3366dcb41ba268c94a89248822f0ddeea2aae349d26c04c5a73bcc704bd9e9badbfb81d6a803e3e7eed17376873fb43b161ab8b2d4f6d995d327c01d9949ac1bff15a9c23f02ee9f2310307fa361b07f26b29ace9a61ea6a663f0fc66a0b4b49a3aa724b44c56638945edb519680528deeb6d5ea302e86293cc3d327c13df5c75a0cf0d50e09105f6a09e667bb67ae853c6ef372a54ff53a510e527f9b05688c1f83d9ab5be0cd19", printBuffer(buf, 80));
 
+    _.programs['copier'].use();
+
+    _.textures.swap();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+    _.programs['copier'].render(0, 72, 8, true); //Add computed hash to destination
+
+    gl.readPixels(0, 0, 80, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+    match("Copying", "9345e1bdf4360b3b9c13f5656a85df67129cd02e38b264e1a3b22b55a7fdfd5502000000ff1fd715a981626682fd8d73afda09d825722d6ba5f665b1be6ed400242f7b650c3623c0f087fefdeefcd4c84d916a511551425fabaf52d55d559649132969c1ea9d2b5fc66142e4286085f9a809188e1204725d5679a7f0990ee0b0ff4f1190994e0ec53cde910f4f5f765de6567a992c59a1fc3366dcb41ba268c94a89248822f0ddeea2aae349d26c04c5a73bcc704bd9e9badbfb81d6a803e3e7eed17376873fb43b161ab8b2d4f6d995d327c01d9949ac1bff15a9c23f02ee9f2310307fa361b07f26b29ace9a61ea6a663f0fc66a0b4b49a3aa724b44c56638945edb519680528deeb6d5ea302e86293cc3d327c13df5c75a0cf0d50e09105ffd4fc824af9db9c0d882e8d70fd5d4a163ab22add3b7cd6dc336050003deca6e", printBuffer(buf, 80));
+
     var msecTime = (((new Date()).getTime())-startTime);
     console.log("Running time: " + msecTime + "ms");
+
+    console.log("First round of hash is " + printBuffer(buf.subarray(72*4, 80*4), 8));
 });
