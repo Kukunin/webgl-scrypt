@@ -50,6 +50,7 @@ var _ = {
     SUM_MODE:   2,
     XOR_MODE:   3,
     VALUE_MODE: 4,
+    HWORK_MODE: 5,
 
     TMP_HASH_OFFSET:        0,
     TMP_WORK_OFFSET:        8,
@@ -311,6 +312,10 @@ function computeSHA256Program() {
 *       SUM_MODE   - Sum src and dst pixel and write to dst
 *       XOR_MODE   - xor src and dst pixel and write to dst
 *       VALUE_MODE - Set dst pixel with passed value
+*       HWORK_MODE - hash finalization mode
+*                       Copies length pixels from source, adds last bit
+*                       and bits length in the end.
+*                       Set bits length in VALUE uniform
 * @arg value       Value used in VALUE_MODE
 * src_offset, dst_offset, length and mode flag
 */
@@ -334,6 +339,9 @@ function copierProgram() {
         gl.uniform1i(locations.sampler, 0);
         if( mode == _.VALUE_MODE ) {
             gl.uniform2f(locations.value, value[0], value[1]);
+        }
+        if( mode == _.HWORK_MODE ) {
+            gl.uniform2f(locations.value, 0, value);
         }
 
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
@@ -503,6 +511,11 @@ $(function() {
     sha256_round(_.OKEY_HASH1_OFFSET);
     gl.readPixels(_.OKEY_HASH1_OFFSET, 0, 8, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
     match("oKey base hash", "14d07616f180c5531ea198c14c20997445b7cf0cfc90d3650e59c6a1af3626a2", printBuffer(buf, 8));
+
+    _.textures.swap();
+    _.programs['copier'].render(_.NONCED_HEADER_OFFSET + 16, _.TMP_WORK_OFFSET, 4, _.HWORK_MODE, 640);
+    gl.readPixels(_.TMP_WORK_OFFSET, 0, 16, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+    match("Hash work finalization", "8ba5f869f139d55346e2021b00039bfc800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000280", printBuffer(buf, 16));
 
     var msecTime = (((new Date()).getTime())-startTime);
     console.log("Running time: " + msecTime + "ms");

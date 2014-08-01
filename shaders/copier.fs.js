@@ -9,6 +9,7 @@ precision mediump float;
 #define SUM_MODE   2
 #define XOR_MODE   3
 #define VALUE_MODE 4
+#define HWORK_MODE 5
 
 /* Common functions */
 vec4 toRGBA(in vec2 arg) {
@@ -21,6 +22,13 @@ vec4 toRGBA(in vec2 arg) {
     V -= B * POW_2_08;
     float A = V;
     return vec4(R/255., G/255., B/255., A/255.);
+}
+
+vec2 fromRGBA(in vec4 rgba) {
+    rgba *= 255.;
+    float x = ((rgba.r * 256.) + rgba.g);
+    float y = ((rgba.b * 256.) + rgba.a);
+    return vec2(x, y);
 }
 
 vec2 safe_add (in vec2 a, in vec2 b)
@@ -59,6 +67,8 @@ vec2 xor (in vec2 a, in vec2 b)
         return vec2 (xor16 (a.x, b.x), xor16 (a.y, b.y));
 }
 
+#define PREDEFINED_BLOCKS 16.
+
 /* Variables */
 uniform sampler2D uSampler;
 varying vec2 vTextCoord;
@@ -76,13 +86,6 @@ vec4 _(in float offset) {
     return texture2D(uSampler, coordinate / 1024.);
 }
 
-vec2 fromRGBA(vec4 rgba) {
-    rgba *= 255.;
-    float x = ((rgba.r * 256.) + rgba.g);
-    float y = ((rgba.b * 256.) + rgba.a);
-    return vec2(x, y);
-}
-
 vec2 e(in float offset) {
     return fromRGBA(_(offset));
 }
@@ -94,9 +97,9 @@ void main () {
     float block = floor(position / 65984.);
 
     start = (block * 65984.);
+    float o = offset - destination;
 
-    if(offset >= destination && offset < (destination + length)) {
-        float o = offset - destination;
+    if (offset >= destination && offset < (destination + length)) {
         if ( mode == SUM_MODE ) {
             gl_FragColor = toRGBA(safe_add(e(offset), e(source + o)));
         } else if ( mode == XOR_MODE ) {
@@ -105,6 +108,14 @@ void main () {
             gl_FragColor = toRGBA(value);
         } else {
             gl_FragColor = _(source + o);
+        }
+    } else if (mode == HWORK_MODE && offset < destination + 16.) {
+        if (offset == destination + length) {
+            gl_FragColor = toRGBA(vec2(32768., 0.)); //last bit
+        } else if ( offset == destination + 15. ) {
+            gl_FragColor = toRGBA(value); //bits length
+        } else {
+            gl_FragColor = vec4(0.);
         }
     } else {
         gl_FragColor = texture2D(uSampler, vTextCoord.st);
