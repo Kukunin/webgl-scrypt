@@ -62,7 +62,9 @@ var _ = {
     HMAC_KEY_HASH_OFFSET:   148,
     IKEY_HASH1_OFFSET:      156,
     OKEY_HASH1_OFFSET:      164,
-    INITIAL_HASH_OFFSET:    172
+    INITIAL_HASH_OFFSET:    172,
+    TEMP_HASH_OFFSET:       180,
+    TEMP_HASH2_OFFSET:      188
 }
 
 function loadResource(n) {
@@ -512,10 +514,34 @@ $(function() {
     gl.readPixels(_.OKEY_HASH1_OFFSET, 0, 8, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
     match("oKey base hash", "14d07616f180c5531ea198c14c20997445b7cf0cfc90d3650e59c6a1af3626a2", printBuffer(buf, 8));
 
+
+    /* Create HMAC message for header+1 */
     _.textures.swap();
-    _.programs['copier'].render(_.NONCED_HEADER_OFFSET + 16, _.TMP_WORK_OFFSET, 4, _.HWORK_MODE, 640);
+    _.programs['copier'].render(_.NONCED_HEADER_OFFSET, _.TMP_WORK_OFFSET, 16);
+    _.textures.swap();
+    _.programs['copier'].render(_.IKEY_HASH1_OFFSET, _.TEMP_HASH_OFFSET, 8);
+    sha256_round(_.TEMP_HASH_OFFSET);
+    gl.readPixels(_.TEMP_HASH_OFFSET, 0, 8, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+    match("iKey||Header1", "70fe554aab7dec28345c9ef25aee02ab18bc9db4a8486eb78c14816bdaa7fd32", printBuffer(buf, 8));
+
+    _.textures.swap();
+    _.programs['copier'].render(_.NONCED_HEADER_OFFSET + 16, _.TMP_WORK_OFFSET, 5, _.HWORK_MODE, 1184);
+    _.textures.swap();
+    _.programs['copier'].render(null, _.TMP_WORK_OFFSET + 4, 1, _.VALUE_MODE, [0, 1]);
     gl.readPixels(_.TMP_WORK_OFFSET, 0, 16, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
-    match("Hash work finalization", "8ba5f869f139d55346e2021b00039bfc800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000280", printBuffer(buf, 16));
+    match("iKey||Header2 WORK", "8ba5f869f139d55346e2021b00039bfc0000000180000000000000000000000000000000000000000000000000000000000000000000000000000000000004a0", printBuffer(buf, 16));
+
+    sha256_round(_.TEMP_HASH_OFFSET);
+    gl.readPixels(_.TEMP_HASH_OFFSET, 0, 8, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+    match("iKey||Header", "178362f3f1fa3410a350690264bcc3b8615f64ee2dd91a60ac3d36df2081123f", printBuffer(buf, 8));
+
+    _.textures.swap();
+    _.programs['copier'].render(_.TEMP_HASH_OFFSET, _.TMP_WORK_OFFSET, 8, _.HWORK_MODE, 768);
+    _.textures.swap();
+    _.programs['copier'].render(_.OKEY_HASH1_OFFSET, _.TEMP_HASH_OFFSET, 8);
+    sha256_round(_.TEMP_HASH_OFFSET);
+    gl.readPixels(_.TEMP_HASH_OFFSET, 0, 8, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+    match("HMAC(header+1)", "a2bbe865384dc92ab7a98ae2015500f3d0bab5ab9edd1da041b2f00f51b8a4ce", printBuffer(buf, 8));
 
     var msecTime = (((new Date()).getTime())-startTime);
     console.log("Running time: " + msecTime + "ms");
