@@ -46,11 +46,12 @@ var _ = {
     textures: {},
     programs: {},
 
-    COPY_MODE:  1,
-    SUM_MODE:   2,
-    XOR_MODE:   3,
-    VALUE_MODE: 4,
-    HWORK_MODE: 5,
+    COPY_MODE:   1,
+    SUM_MODE:    2,
+    XOR_MODE:    3,
+    VALUE_MODE:  4,
+    HWORK_MODE:  5,
+    REVERT_MODE: 6,
 
     TMP_HASH_OFFSET:        0,
     TMP_WORK_OFFSET:        8,
@@ -318,6 +319,8 @@ function computeSHA256Program() {
 *                       Copies length pixels from source, adds last bit
 *                       and bits length in the end.
 *                       Set bits length in VALUE uniform
+*       REVERT_MODE  The same mode as COPY_MODE, but result value will convert
+*                       Biggest byte becomes littest and vice versa
 * @arg value       Value used in VALUE_MODE
 * src_offset, dst_offset, length and mode flag
 */

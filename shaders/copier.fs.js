@@ -5,11 +5,12 @@ precision mediump float;
 #define Ox10000 65536.0
 #define Ox8000  32768.0
 
-#define COPY_MODE  1
-#define SUM_MODE   2
-#define XOR_MODE   3
-#define VALUE_MODE 4
-#define HWORK_MODE 5
+#define COPY_MODE   1
+#define SUM_MODE    2
+#define XOR_MODE    3
+#define VALUE_MODE  4
+#define HWORK_MODE  5
+#define REVERT_MODE 6
 
 /* Common functions */
 vec4 toRGBA(in vec2 arg) {
@@ -106,6 +107,8 @@ void main () {
             gl_FragColor = toRGBA(xor(e(offset), e(source + o)));
         } else if ( mode == VALUE_MODE ) {
             gl_FragColor = toRGBA(value);
+        } else if ( mode == REVERT_MODE ) {
+            gl_FragColor = _(source + o).abgr;
         } else {
             gl_FragColor = _(source + o);
         }
