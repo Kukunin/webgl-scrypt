@@ -34,22 +34,24 @@ vec2 safe_add (in vec2 a, in vec2 b)
 #define TMP_HASH_OFFSET_END      8
 #define TMP_WORK_OFFSET          8
 #define TMP_WORK_OFFSET_END      24
-#define HEADER_HASH1_OFFSET      72
-#define HEADER_HASH1_OFFSET_END  80
-#define PADDED_HEADER_OFFSET     80
-#define PADDED_HEADER_OFFSET_END 96
-#define IKEY_OFFSET              96
-#define IKEY_OFFSET_END          112
-#define OKEY_OFFSET              112
-#define OKEY_OFFSET_END          128
-#define HMAC_KEY_HASH_OFFSET     128
-#define HMAC_KEY_HASH_OFFSET_END 136
-#define IKEY_HASH1_OFFSET        136
-#define IKEY_HASH1_OFFSET_END    144
-#define OKEY_HASH1_OFFSET        144
-#define OKEY_HASH1_OFFSET_END    152
-#define INITIAL_HASH_OFFSET      152
-#define INITIAL_HASH_OFFSET_END  160
+#define NONCED_HEADER_OFFSET     72
+#define NONCED_HEADER_OFFSET_END 92
+#define HEADER_HASH1_OFFSET      92
+#define HEADER_HASH1_OFFSET_END  100
+#define PADDED_HEADER_OFFSET     100
+#define PADDED_HEADER_OFFSET_END 116
+#define IKEY_OFFSET              116
+#define IKEY_OFFSET_END          132
+#define OKEY_OFFSET              132
+#define OKEY_OFFSET_END          148
+#define HMAC_KEY_HASH_OFFSET     148
+#define HMAC_KEY_HASH_OFFSET_END 156
+#define IKEY_HASH1_OFFSET        156
+#define IKEY_HASH1_OFFSET_END    164
+#define OKEY_HASH1_OFFSET        164
+#define OKEY_HASH1_OFFSET_END    172
+#define INITIAL_HASH_OFFSET      172
+#define INITIAL_HASH_OFFSET_END  180
 
 uniform vec2 H[8];
 uniform vec2 header[19];
@@ -77,6 +79,18 @@ void main () {
             if ( i == offset ) {
                 gl_FragColor = toRGBA(header[i-TMP_WORK_OFFSET]);
             }
+        }
+    } else if ( offset >= NONCED_HEADER_OFFSET && offset < NONCED_HEADER_OFFSET_END ) {
+        if ( offset < NONCED_HEADER_OFFSET_END - 1 ) {
+            //Copy whole header without last word
+            for(int i = NONCED_HEADER_OFFSET; i < NONCED_HEADER_OFFSET_END - 1; i++) {
+                if ( i == offset ) {
+                    gl_FragColor = toRGBA(header[i-NONCED_HEADER_OFFSET]);
+                }
+            }
+        } else  {
+            //Set the nonce
+            gl_FragColor = toRGBA(safe_add(base_nonce, vec2(0., block))).abgr;
         }
     } else if ( offset >= HEADER_HASH1_OFFSET && offset < HEADER_HASH1_OFFSET_END ) {
         for(int i = HEADER_HASH1_OFFSET; i < HEADER_HASH1_OFFSET_END; i++) {
