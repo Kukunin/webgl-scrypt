@@ -642,7 +642,12 @@ $(function() {
     salsa8(0, 16);
 
     gl.readPixels(_.SCRYPT_X_OFFSET, 0, 32, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
-    match("Scrypt X salsa", "6ccb9335ef55d24890a1dcb7c20e9f0a2cebec8625eb8dba76c81743149eac799fb212d323b424207119baf1158bbce20cbb9f4584db1da8d67e62fa2c2a2555ce4a765393e2605646d993b7348dc902203e59f65510feb509c448cf12895a6e228989e52be2fc021ca36fd4d8342ecaabd4fe15feada69d114728f4dd77033c", printBuffer(buf, 32));
+    match("Scrypt X salsa1", "6ccb9335ef55d24890a1dcb7c20e9f0a2cebec8625eb8dba76c81743149eac799fb212d323b424207119baf1158bbce20cbb9f4584db1da8d67e62fa2c2a2555ce4a765393e2605646d993b7348dc902203e59f65510feb509c448cf12895a6e228989e52be2fc021ca36fd4d8342ecaabd4fe15feada69d114728f4dd77033c", printBuffer(buf, 32));
+
+    salsa8(16, 0);
+
+    gl.readPixels(_.SCRYPT_X_OFFSET, 0, 32, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+    match("Scrypt X salsa2", "6ccb9335ef55d24890a1dcb7c20e9f0a2cebec8625eb8dba76c81743149eac799fb212d323b424207119baf1158bbce20cbb9f4584db1da8d67e62fa2c2a2555a45dee8fe66edef4ca83cf19ea304f683ffa2a195d446e9b1240dda69decf03327eb8821fc1590da0a751a958c7476e6817a8dfe8a5f1bd7dc86500d89b3279c", printBuffer(buf, 32));
 
     var msecTime = (((new Date()).getTime())-startTime);
     console.log("Running time: " + msecTime + "ms");
