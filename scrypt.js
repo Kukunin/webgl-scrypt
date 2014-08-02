@@ -89,7 +89,8 @@ var _ = {
     TEMP_HASH_OFFSET:       180,
     TEMP_HASH2_OFFSET:      188,
     SCRYPT_X_OFFSET:        196,
-    TMP_SCRYPT_X_OFFSET:    228
+    TMP_SCRYPT_X_OFFSET:    228,
+    SCRYPT_V_OFFSET:        244
 }
 
 function loadResource(n) {
@@ -639,15 +640,19 @@ $(function() {
     gl.readPixels(_.SCRYPT_X_OFFSET, 0, 32, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
     match("Scrypt X", "65e8bba22ac94d38e28aa9b7f3005501abb5bad0a01ddd9e0ff0b241cea4b85163a5c4366f372bb6aff7ecf17a377087dfa2f06185cccfc5454fa183b0a61179ce4a765393e2605646d993b7348dc902203e59f65510feb509c448cf12895a6e228989e52be2fc021ca36fd4d8342ecaabd4fe15feada69d114728f4dd77033c", printBuffer(buf, 32));
 
-    salsa8(0, 16);
+    for(i = 0; i < 1024; i++) {
+        _.textures.swap();
+        _.programs['copier'].render(_.SCRYPT_X_OFFSET, _.SCRYPT_V_OFFSET + (i*32), 32, _.COPY_MODE);
+
+        salsa8(0, 16);
+        salsa8(16, 0);
+    }
 
     gl.readPixels(_.SCRYPT_X_OFFSET, 0, 32, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
-    match("Scrypt X salsa1", "6ccb9335ef55d24890a1dcb7c20e9f0a2cebec8625eb8dba76c81743149eac799fb212d323b424207119baf1158bbce20cbb9f4584db1da8d67e62fa2c2a2555ce4a765393e2605646d993b7348dc902203e59f65510feb509c448cf12895a6e228989e52be2fc021ca36fd4d8342ecaabd4fe15feada69d114728f4dd77033c", printBuffer(buf, 32));
+    match("1024 salsa rounds", "df29c599f41f175b62737cd533e7adce586bbddaeaef3ba7ffd1be591dceaaba9822ef2d0438f00e992ab4bcf5cf0942ab0439bac73e761c2472db0cfc170b44fcf1cc3e8d03c71d4a3a54b63220d201d82ea8ed22b8a5138123adafb00c3d1a5640c5683766cc2fd2fd009531222e99e4fba360412ec7bbd70b327644a4aebb", printBuffer(buf, 32));
 
-    salsa8(16, 0);
-
-    gl.readPixels(_.SCRYPT_X_OFFSET, 0, 32, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
-    match("Scrypt X salsa2", "6ccb9335ef55d24890a1dcb7c20e9f0a2cebec8625eb8dba76c81743149eac799fb212d323b424207119baf1158bbce20cbb9f4584db1da8d67e62fa2c2a2555a45dee8fe66edef4ca83cf19ea304f683ffa2a195d446e9b1240dda69decf03327eb8821fc1590da0a751a958c7476e6817a8dfe8a5f1bd7dc86500d89b3279c", printBuffer(buf, 32));
+    gl.readPixels(_.SCRYPT_V_OFFSET, 0, 64, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+    match("First 64 words of V", "65e8bba22ac94d38e28aa9b7f3005501abb5bad0a01ddd9e0ff0b241cea4b85163a5c4366f372bb6aff7ecf17a377087dfa2f06185cccfc5454fa183b0a61179ce4a765393e2605646d993b7348dc902203e59f65510feb509c448cf12895a6e228989e52be2fc021ca36fd4d8342ecaabd4fe15feada69d114728f4dd77033c6ccb9335ef55d24890a1dcb7c20e9f0a2cebec8625eb8dba76c81743149eac799fb212d323b424207119baf1158bbce20cbb9f4584db1da8d67e62fa2c2a2555a45dee8fe66edef4ca83cf19ea304f683ffa2a195d446e9b1240dda69decf03327eb8821fc1590da0a751a958c7476e6817a8dfe8a5f1bd7dc86500d89b3279c", printBuffer(buf, 64));
 
     var msecTime = (((new Date()).getTime())-startTime);
     console.log("Running time: " + msecTime + "ms");

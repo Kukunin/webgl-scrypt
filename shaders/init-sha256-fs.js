@@ -60,6 +60,8 @@ vec2 safe_add (in vec2 a, in vec2 b)
 #define SCRYPT_X_OFFSET_END      228
 #define TMP_SCRYPT_X_OFFSET      228
 #define TMP_SCRYPT_X_OFFSET_END  244
+#define SCRYPT_V_OFFSET          244
+#define SCRYPT_V_OFFSET_END      33012
 
 uniform vec2 H[8];
 uniform vec2 header[19];
