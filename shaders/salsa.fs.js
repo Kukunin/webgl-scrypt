@@ -9,8 +9,8 @@ precision mediump float;
 #define POW_2_09 512.0
 #define POW_2_14 16384.0
 
-#define SCRYPT_X_OFFSET          196.
-#define SCRYPT_X_OFFSET_END      228.
+#define TMP_SCRYPT_X_OFFSET      228.
+#define TMP_SCRYPT_X_OFFSET_END  244.
 
 /* Common functions */
 vec4 toRGBA(in vec2 arg) {
@@ -106,10 +106,10 @@ void main () {
     float position = (c.y * 1024.) + c.x;
     float offset = mod(position, 65984.);
 
-    if (offset >= SCRYPT_X_OFFSET && offset < SCRYPT_X_OFFSET + 16.) {
+    if (offset >= TMP_SCRYPT_X_OFFSET && offset < TMP_SCRYPT_X_OFFSET + 16.) {
         float block = floor(position / 65984.);
-        start = (block * 65984.) + float(SCRYPT_X_OFFSET);
-        float o = offset - SCRYPT_X_OFFSET;
+        start = (block * 65984.) + float(TMP_SCRYPT_X_OFFSET);
+        float o = offset - TMP_SCRYPT_X_OFFSET;
 
         vec4 point = floor(texture2D(kSampler, vec2(o/16., part/2.))*255.);
         if (point.g == round && round == 1.) {
