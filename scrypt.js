@@ -593,6 +593,7 @@ function computeX() {
     sha256_round(_.TEMP_HASH_OFFSET);
 
     _.textures.swap();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     _.programs['copier'].render(_.TEMP_HASH_OFFSET, _.FINAL_SCRYPT_OFFSET, 8);
 }
 
