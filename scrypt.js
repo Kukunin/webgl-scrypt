@@ -643,7 +643,7 @@ $(function() {
     gl.readPixels(_.SCRYPT_X_OFFSET, 0, 32, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
     match("Scrypt X", "65e8bba22ac94d38e28aa9b7f3005501abb5bad0a01ddd9e0ff0b241cea4b85163a5c4366f372bb6aff7ecf17a377087dfa2f06185cccfc5454fa183b0a61179ce4a765393e2605646d993b7348dc902203e59f65510feb509c448cf12895a6e228989e52be2fc021ca36fd4d8342ecaabd4fe15feada69d114728f4dd77033c", printBuffer(buf, 32));
 
-    for(i = 0; i < 1024; i++) {
+    for(var i = 0; i < 1024; i++) {
         _.textures.swap();
         _.programs['copier'].render(_.SCRYPT_X_OFFSET, _.SCRYPT_V_OFFSET + (i*32), 32, _.COPY_MODE);
 
@@ -657,11 +657,16 @@ $(function() {
     gl.readPixels(_.SCRYPT_V_OFFSET, 0, 64, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
     match("First 64 words of V", "65e8bba22ac94d38e28aa9b7f3005501abb5bad0a01ddd9e0ff0b241cea4b85163a5c4366f372bb6aff7ecf17a377087dfa2f06185cccfc5454fa183b0a61179ce4a765393e2605646d993b7348dc902203e59f65510feb509c448cf12895a6e228989e52be2fc021ca36fd4d8342ecaabd4fe15feada69d114728f4dd77033c6ccb9335ef55d24890a1dcb7c20e9f0a2cebec8625eb8dba76c81743149eac799fb212d323b424207119baf1158bbce20cbb9f4584db1da8d67e62fa2c2a2555a45dee8fe66edef4ca83cf19ea304f683ffa2a195d446e9b1240dda69decf03327eb8821fc1590da0a751a958c7476e6817a8dfe8a5f1bd7dc86500d89b3279c", printBuffer(buf, 64));
 
-    _.textures.swap();
-    _.programs['copier'].render(null, _.SCRYPT_X_OFFSET, 32, _.SCRYPT_MODE);
+    for(var i = 0; i < 1024; i++) {
+        _.textures.swap();
+        _.programs['copier'].render(null, _.SCRYPT_X_OFFSET, 32, _.SCRYPT_MODE);
+
+        salsa8(0, 16);
+        salsa8(16, 0);
+    }
 
     gl.readPixels(_.SCRYPT_X_OFFSET, 0, 32, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
-    match("Restore X 1 round", "df60b18ddfe52c3c9fdb2a9a7fbece423bfc3acb742247caa3572594554863a59c87ab2ca6dfa13f914ca692c3af4cd7fb25886c9b3500254f02294bd1c0a8e473ba11bb3e5b6fc88abc3745866a5004114dc63f4cbdb551a03c060ebf67e38496ea7eb36b10d176576732f34b9772e908cb46de3afb2f7a2bebc7b2f5dd1987", printBuffer(buf, 32));
+    match("Restore to X", "1f39e39a9d78e53adadafc030499012f187501d0b23ab166f39296dfe0b75b4bc9e91c0c40d8feafe4d543c8649b2ee145415ffbf90358e980c3d0c2aab0b7a1161b459166df29cb172ba08de0c522c71cd3bf416e0b6931eb39c18eaf0d49efa33f5693997eb9e90d37a1b76a4c887ac61beb75cafa253859f18f262680e5f6", printBuffer(buf, 32));
 
     var msecTime = (((new Date()).getTime())-startTime);
     console.log("Running time: " + msecTime + "ms");
