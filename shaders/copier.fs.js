@@ -11,6 +11,9 @@ precision mediump float;
 #define VALUE_MODE  4
 #define HWORK_MODE  5
 #define REVERT_MODE 6
+#define SCRYPT_MODE 7
+
+#define SCRYPT_V_OFFSET          244.
 
 /* Common functions */
 vec4 toRGBA(in vec2 arg) {
@@ -68,6 +71,32 @@ vec2 xor (in vec2 a, in vec2 b)
         return vec2 (xor16 (a.x, b.x), xor16 (a.y, b.y));
 }
 
+float and16 (in float a, in float b)
+{
+	float ret = float(0);
+	float fact = float (Ox8000);
+        const int maxi = 16;
+
+	for (int i=0; i < maxi; i++)
+	{
+            if (min(a, b) >= fact)
+                ret += fact;
+
+            if (a >= fact)
+		a -= fact;
+            if (b >= fact)
+		b -= fact;
+
+            fact /= 2.0;
+	}
+	return ret;
+}
+
+vec2 and (in vec2 a, in vec2 b)
+{
+      return vec2 (and16 (a.x, b.x), and16 (a.y, b.y));
+}
+
 #define PREDEFINED_BLOCKS 16.
 
 /* Variables */
@@ -109,6 +138,10 @@ void main () {
             gl_FragColor = toRGBA(value);
         } else if ( mode == REVERT_MODE ) {
             gl_FragColor = _(source + o).abgr;
+        } else if ( mode == SCRYPT_MODE ) {
+            float k = floor(and16(e(destination + 16.).y, 1023.) * 32.);
+
+            gl_FragColor = toRGBA(xor(e(offset), e(SCRYPT_V_OFFSET + k + o)));
         } else {
             gl_FragColor = _(source + o);
         }

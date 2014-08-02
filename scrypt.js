@@ -74,6 +74,7 @@ var _ = {
     VALUE_MODE:  4,
     HWORK_MODE:  5,
     REVERT_MODE: 6,
+    SCRYPT_MODE: 7,
 
     TMP_HASH_OFFSET:        0,
     TMP_WORK_OFFSET:        8,
@@ -240,7 +241,7 @@ function initBuffers() {
     var nX = x / textureSize;
     var vX = (nX * 2) - 1
 
-    var y = 2;
+    var y = 70;
     var nY = y / textureSize;
     var vY = (nY * 2) - 1;
 
@@ -355,6 +356,8 @@ function computeSHA256Program() {
 *                       Set bits length in VALUE uniform
 *       REVERT_MODE  The same mode as COPY_MODE, but result value will convert
 *                       Biggest byte becomes littest and vice versa
+*       SCRYPT_MODE  Specific for scrypt mode. Find the correct offset in V array
+*                       and xor it with X array
 * @arg value       Value used in VALUE_MODE
 * src_offset, dst_offset, length and mode flag
 */
@@ -653,6 +656,12 @@ $(function() {
 
     gl.readPixels(_.SCRYPT_V_OFFSET, 0, 64, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
     match("First 64 words of V", "65e8bba22ac94d38e28aa9b7f3005501abb5bad0a01ddd9e0ff0b241cea4b85163a5c4366f372bb6aff7ecf17a377087dfa2f06185cccfc5454fa183b0a61179ce4a765393e2605646d993b7348dc902203e59f65510feb509c448cf12895a6e228989e52be2fc021ca36fd4d8342ecaabd4fe15feada69d114728f4dd77033c6ccb9335ef55d24890a1dcb7c20e9f0a2cebec8625eb8dba76c81743149eac799fb212d323b424207119baf1158bbce20cbb9f4584db1da8d67e62fa2c2a2555a45dee8fe66edef4ca83cf19ea304f683ffa2a195d446e9b1240dda69decf03327eb8821fc1590da0a751a958c7476e6817a8dfe8a5f1bd7dc86500d89b3279c", printBuffer(buf, 64));
+
+    _.textures.swap();
+    _.programs['copier'].render(null, _.SCRYPT_X_OFFSET, 32, _.SCRYPT_MODE);
+
+    gl.readPixels(_.SCRYPT_X_OFFSET, 0, 32, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+    match("Restore X 1 round", "df60b18ddfe52c3c9fdb2a9a7fbece423bfc3acb742247caa3572594554863a59c87ab2ca6dfa13f914ca692c3af4cd7fb25886c9b3500254f02294bd1c0a8e473ba11bb3e5b6fc88abc3745866a5004114dc63f4cbdb551a03c060ebf67e38496ea7eb36b10d176576732f34b9772e908cb46de3afb2f7a2bebc7b2f5dd1987", printBuffer(buf, 32));
 
     var msecTime = (((new Date()).getTime())-startTime);
     console.log("Running time: " + msecTime + "ms");
