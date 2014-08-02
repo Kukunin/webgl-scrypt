@@ -54,8 +54,8 @@ vec2 safe_add (in vec2 a, in vec2 b)
 #define INITIAL_HASH_OFFSET_END  180
 #define TEMP_HASH_OFFSET         180
 #define TEMP_HASH_OFFSET_END     188
-#define TEMP_HASH2_OFFSET        188
-#define TEMP_HASH2_OFFSET_END    196
+#define FINAL_SCRYPT_OFFSET      188
+#define FINAL_SCRYPT_OFFSET_END  196
 #define SCRYPT_X_OFFSET          196
 #define SCRYPT_X_OFFSET_END      228
 #define TMP_SCRYPT_X_OFFSET      228

@@ -88,7 +88,7 @@ var _ = {
     OKEY_HASH1_OFFSET:      164,
     INITIAL_HASH_OFFSET:    172,
     TEMP_HASH_OFFSET:       180,
-    TEMP_HASH2_OFFSET:      188,
+    FINAL_SCRYPT_OFFSET:    188,
     SCRYPT_X_OFFSET:        196,
     TMP_SCRYPT_X_OFFSET:    228,
     SCRYPT_V_OFFSET:        244
@@ -564,6 +564,38 @@ function salsa8(di, xi) {
     _.programs['copier'].render(_.TMP_SCRYPT_X_OFFSET, _.SCRYPT_X_OFFSET + di, 16, _.SUM_MODE);
 }
 
+function computeX() {
+    //iKey || X round 1
+    _.textures.swap();
+    _.programs['copier'].render(_.SCRYPT_X_OFFSET, _.TMP_WORK_OFFSET, 16, _.REVERT_MODE);
+    _.textures.swap();
+    _.programs['copier'].render(_.IKEY_HASH1_OFFSET, _.TEMP_HASH_OFFSET, 8);
+    sha256_round(_.TEMP_HASH_OFFSET);
+
+    //iKey || X round 2
+    _.textures.swap();
+    _.programs['copier'].render(_.SCRYPT_X_OFFSET + 16, _.TMP_WORK_OFFSET, 16, _.REVERT_MODE);
+    sha256_round(_.TEMP_HASH_OFFSET);
+
+
+    //iKey || X round 3
+    _.textures.swap();
+    _.programs['copier'].render(_.SCRYPT_X_OFFSET, _.TMP_WORK_OFFSET, 1, _.HWORK_MODE, 1568);
+    _.textures.swap();
+    _.programs['copier'].render(null, _.TMP_WORK_OFFSET, 1, _.VALUE_MODE, [0, 1]);
+    sha256_round(_.TEMP_HASH_OFFSET);
+
+    /* oKey || h(iKey || X) final hash */
+    _.textures.swap();
+    _.programs['copier'].render(_.TEMP_HASH_OFFSET, _.TMP_WORK_OFFSET, 8, _.HWORK_MODE, 768);
+    _.textures.swap();
+    _.programs['copier'].render(_.OKEY_HASH1_OFFSET, _.TEMP_HASH_OFFSET, 8);
+    sha256_round(_.TEMP_HASH_OFFSET);
+
+    _.textures.swap();
+    _.programs['copier'].render(_.TEMP_HASH_OFFSET, _.FINAL_SCRYPT_OFFSET, 8);
+}
+
 $(function() {
     initGL();
     initBuffers();
@@ -667,6 +699,13 @@ $(function() {
 
     gl.readPixels(_.SCRYPT_X_OFFSET, 0, 32, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
     match("Restore to X", "1f39e39a9d78e53adadafc030499012f187501d0b23ab166f39296dfe0b75b4bc9e91c0c40d8feafe4d543c8649b2ee145415ffbf90358e980c3d0c2aab0b7a1161b459166df29cb172ba08de0c522c71cd3bf416e0b6931eb39c18eaf0d49efa33f5693997eb9e90d37a1b76a4c887ac61beb75cafa253859f18f262680e5f6", printBuffer(buf, 32));
+
+    computeX();
+
+    gl.readPixels(_.FINAL_SCRYPT_OFFSET, 0, 8, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+    match("SCRYPT HASH", "c75792640f558294e4cb2dd70f3c898c47221f1803452ef8f42dd932a6180000", printBuffer(buf, 8));
+
+    console.log("Scrypt hash is " + printBuffer(buf, 8));
 
     var msecTime = (((new Date()).getTime())-startTime);
     console.log("Running time: " + msecTime + "ms");
