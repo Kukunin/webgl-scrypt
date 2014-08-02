@@ -385,18 +385,28 @@ function copierProgram() {
     });
 }
 
+/*
+* Salsa shader to compute the salsa
+* Due the complexity and unposibility to parallelism
+* You have to call it 8 times per round. 4 rounds at all
+*
+* @arg part    Should be 0 or 1
+* @arg round   Round from 0 to 3
+*/
 function salsaProgram() {
     var locations = {};
     return program("shaders/salsa.fs.js", function(program) {
         locations = {
             round:       gl.getUniformLocation(program, "round"),
+            part:        gl.getUniformLocation(program, "part"),
             sampler:     gl.getUniformLocation(program, "uSampler"),
             kSampler:    gl.getUniformLocation(program, "kSampler")
         };
         return locations;
-    }, function(once, round) {
+    }, function(once, part, round) {
         gl.uniform1i(locations.sampler, 0);
-        gl.uniform1f(locations.round, round);
+        gl.uniform1f(locations.part, part);
+        gl.uniform1f(locations.round, round+1);
 
         gl.activeTexture(gl.TEXTURE1);
         gl.bindTexture(gl.TEXTURE_2D, _.textures.salsa);
@@ -603,13 +613,15 @@ $(function() {
     match("Scrypt X", "65e8bba22ac94d38e28aa9b7f3005501abb5bad0a01ddd9e0ff0b241cea4b85163a5c4366f372bb6aff7ecf17a377087dfa2f06185cccfc5454fa183b0a61179ce4a765393e2605646d993b7348dc902203e59f65510feb509c448cf12895a6e228989e52be2fc021ca36fd4d8342ecaabd4fe15feada69d114728f4dd77033c", printBuffer(buf, 32));
 
     _.programs['salsa'].use();
-    for (var i = 0; i < 4; i++) {
-        _.textures.swap();
-        _.programs['salsa'].render(i + 1);
+    for (var j = 0; j < 2; j++) {
+        for (var i = 0; i < 4; i++) {
+            _.textures.swap();
+            _.programs['salsa'].render(j, i);
+        }
     }
 
     gl.readPixels(_.SCRYPT_X_OFFSET, 0, 32, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
-    match("Scrypt X Half salsa", "ce202c916778a96a12c133769dc155146e63bb72f884683d227aea390069a2cdfb4bed9e1ca240d3d94b380124cb43422a80fd5405f02cbcb10038dc289a85aace4a765393e2605646d993b7348dc902203e59f65510feb509c448cf12895a6e228989e52be2fc021ca36fd4d8342ecaabd4fe15feada69d114728f4dd77033c", printBuffer(buf, 32));
+    match("Scrypt X Half salsa", "56c9f38397b87bdfa391d3bdd432d27dc358fdc350cae1d1566b3d8adf222c507f899ec905a26a93fc392cb1d2772938e7dfbe38f177e89c45daa3f61ad258e0ce4a765393e2605646d993b7348dc902203e59f65510feb509c448cf12895a6e228989e52be2fc021ca36fd4d8342ecaabd4fe15feada69d114728f4dd77033c", printBuffer(buf, 32));
 
     var msecTime = (((new Date()).getTime())-startTime);
     console.log("Running time: " + msecTime + "ms");

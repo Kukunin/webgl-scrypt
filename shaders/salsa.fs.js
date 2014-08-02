@@ -73,6 +73,7 @@ vec2 safe_add (in vec2 a, in vec2 b)
 uniform sampler2D uSampler;
 uniform sampler2D kSampler;
 uniform float round;
+uniform float part;
 varying vec2 vTextCoord;
 float start;
 
@@ -110,7 +111,7 @@ void main () {
         start = (block * 65984.) + float(SCRYPT_X_OFFSET);
         float o = offset - SCRYPT_X_OFFSET;
 
-        vec4 point = floor(texture2D(kSampler, vec2(o/16., 0.))*255.);
+        vec4 point = floor(texture2D(kSampler, vec2(o/16., part/2.))*255.);
         if (point.g == round && round == 1.) {
             gl_FragColor = toRGBA(f(o, point.b, point.a, POW_2_09));
         } else if (point.g == round && round == 2.) {
