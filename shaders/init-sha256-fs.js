@@ -63,17 +63,20 @@ vec2 safe_add (in vec2 a, in vec2 b)
 #define SCRYPT_V_OFFSET          244
 #define SCRYPT_V_OFFSET_END      33012
 
+#define BLOCK_SIZE 33012.
+#define TEXTURE_SIZE 1024.
+
 uniform vec2 H[8];
 uniform vec2 header[19];
 uniform vec2 base_nonce;
 
 void main () {
     vec4 c = gl_FragCoord - 0.5;
-    float position = (c.y * 1024.) + c.x;
-    int offset = int(mod(position, 65984.));
-    float block = floor(position / 65984.);
+    float position = (c.y * TEXTURE_SIZE) + c.x;
+    int offset = int(mod(position, BLOCK_SIZE));
+    float block = floor(position / BLOCK_SIZE);
 
-    if ( 1048576. < (block + 1.) * 65984. ) {
+    if ( TEXTURE_SIZE * TEXTURE_SIZE < (block + 1.) * BLOCK_SIZE ) {
         discard;
         return;
     }

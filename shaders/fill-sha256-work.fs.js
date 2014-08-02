@@ -18,6 +18,9 @@ precision mediump float;
 #define POW_2_12 4096.0
 #define POW_2_13 8192.0
 
+#define BLOCK_SIZE 33012.
+#define TEXTURE_SIZE 1024.
+
 /* Common functions */
 vec4 toRGBA(in vec2 arg) {
     float V = float(arg.x);
@@ -106,8 +109,8 @@ float inBlockOffset;
 vec2 w[8];
 
 vec4 _(in float offset) {
-    vec2 coordinate = vec2(mod(start + offset, 1024.), floor((start + offset)/1024.));
-    return texture2D(uSampler, coordinate / 1024.);
+    vec2 coordinate = vec2(mod(start + offset, TEXTURE_SIZE), floor((start + offset)/TEXTURE_SIZE));
+    return texture2D(uSampler, coordinate / TEXTURE_SIZE);
 }
 
 vec2 e(in float offset) {
@@ -124,13 +127,13 @@ vec2 e(in float offset) {
 
 void main () {
     vec4 c = gl_FragCoord - 0.5;
-    float position = (c.y * 1024.) + c.x;
-    float offset = mod(position, 65984.);
-    float block = floor(position / 65984.);
+    float position = (c.y * TEXTURE_SIZE) + c.x;
+    float offset = mod(position, BLOCK_SIZE);
+    float block = floor(position / BLOCK_SIZE);
 
     inBlockOffset = PREDEFINED_BLOCKS + (round * WORKS_PER_ROUND);
     if ( offset >= (TMP_WORK_OFFSET + inBlockOffset) && offset < (TMP_WORK_OFFSET + inBlockOffset + WORKS_PER_ROUND)) {
-        start = (block * 65984.) + TMP_WORK_OFFSET;
+        start = (block * BLOCK_SIZE) + TMP_WORK_OFFSET;
 
         w[0] = blend(e(-16.), e(-15.), e(-7.), e(-2.));
         w[1] = blend(e(-15.), e(-14.), e(-6.), e(-1.));

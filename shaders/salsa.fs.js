@@ -12,6 +12,9 @@ precision mediump float;
 #define TMP_SCRYPT_X_OFFSET      228.
 #define TMP_SCRYPT_X_OFFSET_END  244.
 
+#define BLOCK_SIZE 33012.
+#define TEXTURE_SIZE 1024.
+
 /* Common functions */
 vec4 toRGBA(in vec2 arg) {
     float V = float(arg.x);
@@ -78,8 +81,8 @@ varying vec2 vTextCoord;
 float start;
 
 vec4 _(in float offset) {
-    vec2 coordinate = vec2(mod(start + offset, 1024.), floor((start + offset)/1024.));
-    return texture2D(uSampler, coordinate / 1024.);
+    vec2 coordinate = vec2(mod(start + offset, TEXTURE_SIZE), floor((start + offset)/TEXTURE_SIZE));
+    return texture2D(uSampler, coordinate / TEXTURE_SIZE);
 }
 
 vec2 e(in float offset) {
@@ -103,12 +106,12 @@ vec2 f(float me, float one, float two, float pow) {
 
 void main () {
     vec4 c = gl_FragCoord - 0.5;
-    float position = (c.y * 1024.) + c.x;
-    float offset = mod(position, 65984.);
+    float position = (c.y * TEXTURE_SIZE) + c.x;
+    float offset = mod(position, BLOCK_SIZE);
 
     if (offset >= TMP_SCRYPT_X_OFFSET && offset < TMP_SCRYPT_X_OFFSET + 16.) {
-        float block = floor(position / 65984.);
-        start = (block * 65984.) + float(TMP_SCRYPT_X_OFFSET);
+        float block = floor(position / BLOCK_SIZE);
+        start = (block * BLOCK_SIZE) + float(TMP_SCRYPT_X_OFFSET);
         float o = offset - TMP_SCRYPT_X_OFFSET;
 
         vec4 point = floor(texture2D(kSampler, vec2(o/16., part/2.))*255.);

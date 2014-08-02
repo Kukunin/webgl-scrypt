@@ -18,6 +18,9 @@ precision mediump float;
 #define POW_2_12 4096.0
 #define POW_2_13 8192.0
 
+#define BLOCK_SIZE 33012.
+#define TEXTURE_SIZE 1024.
+
 /* Common functions */
 vec4 toRGBA(in vec2 arg) {
     float V = float(arg.x);
@@ -148,8 +151,8 @@ uniform float round;
 float start;
 
 vec4 _(in float offset) {
-    vec2 coordinate = vec2(mod(start + offset, 1024.), floor((start + offset)/1024.));
-    return texture2D(uSampler, coordinate / 1024.);
+    vec2 coordinate = vec2(mod(start + offset, TEXTURE_SIZE), floor((start + offset)/TEXTURE_SIZE));
+    return texture2D(uSampler, coordinate / TEXTURE_SIZE);
 }
 
 vec2 fromRGBA(vec4 rgba) {
@@ -173,12 +176,12 @@ vec2 K(in float offset) {
 
 void main () {
     vec4 c = gl_FragCoord - 0.5;
-    float position = (c.y * 1024.) + c.x;
-    float offset = mod(position, 65984.);
-    float block = floor(position / 65984.);
+    float position = (c.y * TEXTURE_SIZE) + c.x;
+    float offset = mod(position, BLOCK_SIZE);
+    float block = floor(position / BLOCK_SIZE);
 
     if ( offset >= TMP_HASH_OFFSET && offset < (TMP_HASH_OFFSET + 8.)) {
-        start = (block * 65984.) + TMP_HASH_OFFSET;
+        start = (block * BLOCK_SIZE) + TMP_HASH_OFFSET;
         float rOffset = (round*WORKS_PER_ROUND) + TMP_HASH_OFFSET;
 
         vec2 t[8]; //Work array
