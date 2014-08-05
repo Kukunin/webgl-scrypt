@@ -76,6 +76,9 @@ var _ = {
     REVERT_MODE: 6,
     SCRYPT_MODE: 7,
 
+    BLOCK_SIZE: 33012,
+    TEXTURE_SIZE: 1024,
+
     TMP_HASH_OFFSET:        0,
     TMP_WORK_OFFSET:        8,
     NONCED_HEADER_OFFSET:   72,
@@ -707,6 +710,12 @@ $(function() {
     match("SCRYPT HASH", "c75792640f558294e4cb2dd70f3c898c47221f1803452ef8f42dd932a6180000", printBuffer(buf, 8));
 
     console.log("Scrypt hash is " + printBuffer(buf, 8));
+
+    gl.readPixels(244 + _.FINAL_SCRYPT_OFFSET, 32, 8, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+    match("SECOND SCRYPT HASH", "1630ffa9ad818041406d49aa7ebf2bdda49f76d4d6cc0ac9d22b9e5aaed296c2", printBuffer(buf, 8));
+
+    gl.readPixels(244 + _.NONCED_HEADER_OFFSET, 32, 20, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+    match("Nonced header", "02000000ff1fd715a981626682fd8d73afda09d825722d6ba5f665b1be6ed400242f7b650c3623c0f087fefdeefcd4c84d916a511551425fabaf52d55d5596498ba5f869f139d55346e2021b01039bfc", printBuffer(buf, 20));
 
     var msecTime = (((new Date()).getTime())-startTime);
     console.log("Running time: " + msecTime + "ms");
