@@ -96,6 +96,8 @@ var _ = {
     TMP_SCRYPT_X_OFFSET:    228,
     SCRYPT_V_OFFSET:        244
 }
+_.BLOCKS_PER_TEXTURE = Math.floor(_.TEXTURE_SIZE*_.TEXTURE_SIZE/_.BLOCK_SIZE);
+_.SUBPIXEL = 1 / _.TEXTURE_SIZE; //Size of 0.5 pixel in float
 
 function loadResource(n) {
     var xhr = new XMLHttpRequest();
@@ -115,7 +117,10 @@ function initGL() {
 
     for(var i in names) {
         try {
-            gl = canvas.getContext(names[i], {preserveDrawingBuffer: true});
+            gl = canvas.getContext(names[i], {
+                preserveDrawingBuffer: true,
+                antialias            : false,
+            });
             if (gl) { break; }
         } catch (e) { }
     }
@@ -237,34 +242,94 @@ function initTextures() {
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 }
 
+/* Normalize function
+* Converts from pixels to normalized float from -1 to 1
+*/
+function _n(points) {
+    for(var i in points) {
+        var x = points[i],
+            nX = x / (_.TEXTURE_SIZE - 1),
+            normalized = (nX * 2) - 1;
 
-function initBuffers() {
-    //Convert pixel coordinate to vertex (-1, 1)
-    var x = 1024;
-    var nX = x / textureSize;
-    var vX = (nX * 2) - 1
+        //Add pixel correction for height coordinate
+        if (i % 2 != 0) {
+            var pixelCorrection = -1 * _.SUBPIXEL * normalized;
+            normalized += pixelCorrection;
+        }
 
-    var y = 70;
-    var nY = y / textureSize;
-    var vY = (nY * 2) - 1;
+        points[i] = normalized;
+    }
+    return new Float32Array(points);
+}
 
-    var vertices = new Float32Array([
-       //  1,  1,
-       // -1,  1,
-       //  1, -1,
-       // -1, -1
-         vX, -1,
-        -1, -1,
-         vX, vY,
-        -1, vY
-    ]); //Square to cover whole canvas
+function whatToRender(offset, length) {
+    if(offset == "whole") {
+        _.buffers.mode = gl.TRIANGLE_STRIP;
+        _.buffers.size = 4;
 
-    _.buffers.vertices = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, _.buffers.vertices);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+            1,  1,
+           -1,  1,
+            1, -1,
+           -1, -1
+        ]), gl.STATIC_DRAW);
+    } else {
+        var points = [];
+        for(var i = 0; i < _.BLOCKS_PER_TEXTURE; i++) {
+        // for(var i = 0; i < 2; i++) {
+            var total = (i*_.BLOCK_SIZE)+offset;
 
-    gl.bindBuffer(gl.ARRAY_BUFFER, _.buffers.vertices);
-    gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+            var start_height = Math.floor(total / _.TEXTURE_SIZE),
+                start_width  = total % _.TEXTURE_SIZE,
+                end_height   = Math.floor((total + length) / _.TEXTURE_SIZE);
+                end_width    = (total + length) % _.TEXTURE_SIZE;
+
+            //Start line point
+            points.push(start_width);
+            points.push(start_height);
+
+            //If the end point on the same height
+            if (start_height == end_height) {
+                points.push(end_width);
+                points.push(start_height);
+            } else {
+                //Add start height to the end of texture
+                points.push(_.TEXTURE_SIZE - 1);
+                points.push(start_height);
+
+                start_height++;
+
+                //Fill all lines before end_height
+                while(start_height < end_height) {
+                    points.push(0);
+                    points.push(start_height);
+                    points.push(_.TEXTURE_SIZE - 1);
+                    points.push(start_height);
+
+                    start_height++;
+                }
+
+                //Fill the line until end_with and end_height
+                points.push(0);
+                points.push(start_height);
+                points.push(end_width);
+                points.push(start_height);
+            }
+        }
+
+        _.buffers.size = points.length / 2;
+        _.buffers.mode = gl.LINES;
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, _.buffers.vertices);
+        gl.bufferData(gl.ARRAY_BUFFER, _n(points), gl.STATIC_DRAW);
+    }
 
     gl.bindBuffer(gl.ARRAY_BUFFER, null);
+}
+
+function initBuffers() {
+    _.buffers.vertices = gl.createBuffer();
 }
 
 function initPrograms() {
@@ -293,7 +358,7 @@ function initSHA256Program () {
         gl.uniform2f(locations.nonce, nonce[0], nonce[1]);
         gl.uniform2fv(locations.H, h);
 
-        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+        gl.drawArrays(_.buffers.mode, 0, _.buffers.size);
     });
 }
 
@@ -313,7 +378,7 @@ function fillSHA256workProgram() {
         gl.uniform1f(locations.round, round);
         gl.uniform1i(locations.sampler, 0);
 
-        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+        gl.drawArrays(_.buffers.mode, 0, _.buffers.size);
 
     });
 }
@@ -338,7 +403,7 @@ function computeSHA256Program() {
         gl.bindTexture(gl.TEXTURE_2D, _.textures.K);
         gl.uniform1i(locations.kSampler, 1);
 
-        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+        gl.drawArrays(_.buffers.mode, 0, _.buffers.size);
     });
 }
 
@@ -420,7 +485,7 @@ function salsaProgram() {
         gl.bindTexture(gl.TEXTURE_2D, _.textures.salsa);
         gl.uniform1i(locations.kSampler, 1);
 
-        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+        gl.drawArrays(_.buffers.mode, 0, _.buffers.size);
     });
 }
 
@@ -617,6 +682,7 @@ $(function() {
 
     var startTime = (new Date()).getTime();
 
+    whatToRender("whole");
     _.textures.swap();
     _.programs['init-sha256'].use();
     _.programs['init-sha256'].render(header_bin.slice(0, 38), nonce_bin);
