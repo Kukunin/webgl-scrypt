@@ -517,13 +517,14 @@ function program(fragment_code, locations, render) {
 
     var once = false;
 
-    return {
+    var ret = {
         P: program,
         L: locations,
         A: attributes,
         use: function() {
             gl.useProgram(program);
             once = false;
+            return ret;
         },
         render: function() {
             gl.bindBuffer(gl.ARRAY_BUFFER, _.buffers.vertices);
@@ -535,6 +536,7 @@ function program(fragment_code, locations, render) {
             gl.disableVertexAttribArray(attributes.position);
         }
     };
+    return ret;
 }
 
 function printBuffer(buf, length) {
