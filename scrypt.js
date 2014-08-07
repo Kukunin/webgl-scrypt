@@ -338,6 +338,7 @@ function initPrograms() {
     _.programs["compute-sha256"] = computeSHA256Program();
     _.programs["copier"] = copierProgram();
     _.programs["salsa"] = salsaProgram();
+    _.programs["texture-copy"] = textureCopyProgram();
 }
 
 /**
@@ -454,7 +455,24 @@ function copierProgram() {
             gl.uniform2f(locations.value, 0, value);
         }
 
-        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+        gl.drawArrays(_.buffers.mode, 0, _.buffers.size);
+    });
+}
+
+/**
+* Easiest shader that copies input texture to framebuffer
+*/
+function textureCopyProgram() {
+    var locations = {};
+    return program("shaders/texture-copy.fs.js", function(program) {
+        locations = {
+            sampler:     gl.getUniformLocation(program, "uSampler")
+        };
+        return locations;
+    }, function(once) {
+        gl.uniform1i(locations.sampler, 0);
+
+        gl.drawArrays(_.buffers.mode, 0, _.buffers.size);
     });
 }
 
