@@ -77,7 +77,7 @@ var _ = {
     SCRYPT_MODE: 7,
 
     BLOCK_SIZE: 33012,
-    TEXTURE_SIZE: 1024,
+    TEXTURE_SIZE: textureSize,
 
     TMP_HASH_OFFSET:        0,
     TMP_WORK_OFFSET:        8,
@@ -745,7 +745,7 @@ $(function() {
     initTextures();
     initPrograms();
 
-    var buf = new Uint8Array(128 * 1 * 4);
+    var buf = new Uint8Array(textureSize * 4);
 
     console.log("Headers is " + header);
     var header_bin = ___.hex_to_uint16_array(header);
