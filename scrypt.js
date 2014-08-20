@@ -324,8 +324,6 @@ function whatToRender(offset, length) {
         gl.bindBuffer(gl.ARRAY_BUFFER, _.buffers.vertices);
         gl.bufferData(gl.ARRAY_BUFFER, _n(points), gl.STATIC_DRAW);
     }
-
-    gl.bindBuffer(gl.ARRAY_BUFFER, null);
 }
 
 function initBuffers() {
@@ -354,12 +352,11 @@ function initSHA256Program () {
             nonce:   gl.getUniformLocation(program, "base_nonce")
         };
         return locations;
-    }, function(once, header, nonce) {
+    }, function(header, nonce) {
         gl.uniform2fv(locations.header, header);
         gl.uniform2f(locations.nonce, nonce[0], nonce[1]);
+    }, function() {
         gl.uniform2fv(locations.H, h);
-
-        gl.drawArrays(_.buffers.mode, 0, _.buffers.size);
     });
 }
 
@@ -375,12 +372,10 @@ function fillSHA256workProgram() {
             sampler: gl.getUniformLocation(program, "uSampler")
         };
         return locations;
-    }, function(once, round) {
+    }, function(round) {
         gl.uniform1f(locations.round, round);
+    }, function() {
         gl.uniform1i(locations.sampler, 0);
-
-        gl.drawArrays(_.buffers.mode, 0, _.buffers.size);
-
     });
 }
 /**
@@ -396,17 +391,15 @@ function computeSHA256Program() {
             kSampler: gl.getUniformLocation(program, "kSampler")
         };
         return locations;
-    }, function(once, round) {
+    }, function(round) {
         gl.uniform1f(locations.round, round);
-        gl.uniform1i(locations.sampler, 0);
-
+    }, function() {
         gl.activeTexture(gl.TEXTURE1);
         gl.bindTexture(gl.TEXTURE_2D, _.textures.K);
-        gl.uniform1i(locations.kSampler, 1);
-
         gl.activeTexture(gl.TEXTURE0);
 
-        gl.drawArrays(_.buffers.mode, 0, _.buffers.size);
+        gl.uniform1i(locations.sampler, 0);
+        gl.uniform1i(locations.kSampler, 1);
     });
 }
 
@@ -444,20 +437,19 @@ function copierProgram() {
             sampler:     gl.getUniformLocation(program, "uSampler"),
         };
         return locations;
-    }, function(once, src, dst, length, mode, value) {
+    }, function(src, dst, length, mode, value) {
         gl.uniform1f(locations.source, src);
         gl.uniform1f(locations.destination, dst);
         gl.uniform1f(locations.length, length);
         gl.uniform1i(locations.mode, mode);
-        gl.uniform1i(locations.sampler, 0);
         if( mode == _.VALUE_MODE ) {
             gl.uniform2f(locations.value, value[0], value[1]);
         }
         if( mode == _.HWORK_MODE ) {
             gl.uniform2f(locations.value, 0, value);
         }
-
-        gl.drawArrays(_.buffers.mode, 0, _.buffers.size);
+    }, function() {
+        gl.uniform1i(locations.sampler, 0);
     });
 }
 
@@ -471,10 +463,9 @@ function textureCopyProgram() {
             sampler:     gl.getUniformLocation(program, "uSampler")
         };
         return locations;
-    }, function(once) {
+    }, function() {
+    }, function() {
         gl.uniform1i(locations.sampler, 0);
-
-        gl.drawArrays(_.buffers.mode, 0, _.buffers.size);
     });
 }
 
@@ -496,22 +487,20 @@ function salsaProgram() {
             kSampler:    gl.getUniformLocation(program, "kSampler")
         };
         return locations;
-    }, function(once, part, round) {
-        gl.uniform1i(locations.sampler, 0);
+    }, function(part, round) {
         gl.uniform1f(locations.part, part);
         gl.uniform1f(locations.round, round+1);
-
+    }, function() {
         gl.activeTexture(gl.TEXTURE1);
         gl.bindTexture(gl.TEXTURE_2D, _.textures.salsa);
-        gl.uniform1i(locations.kSampler, 1);
-
         gl.activeTexture(gl.TEXTURE0);
 
-        gl.drawArrays(_.buffers.mode, 0, _.buffers.size);
+        gl.uniform1i(locations.sampler, 0);
+        gl.uniform1i(locations.kSampler, 1);
     });
 }
 
-function program(name, fragment_code, locations, render) {
+function program(name, fragment_code, locations, render, init) {
     var program = establishProgram("shaders/default-vs.js", fragment_code);
 
     var locations = locations(program);
@@ -519,15 +508,18 @@ function program(name, fragment_code, locations, render) {
         position: gl.getAttribLocation(program, "aPosition")
     }
 
-    var once = false;
-
     var ret = {
         P: program,
         L: locations,
         A: attributes,
         use: function() {
             gl.useProgram(program);
-            once = false;
+
+            gl.enableVertexAttribArray(attributes.position);
+            gl.vertexAttribPointer(attributes.position, 2, gl.FLOAT, false, 0, 0);
+
+            init();
+
             _.programs.active = name;
 
             return ret;
@@ -537,13 +529,10 @@ function program(name, fragment_code, locations, render) {
                 ret.use();
             }
             r++;
-            gl.bindBuffer(gl.ARRAY_BUFFER, _.buffers.vertices);
-            gl.enableVertexAttribArray(attributes.position);
-            gl.vertexAttribPointer(attributes.position, 2, gl.FLOAT, false, 0, 0);
 
-            render.apply(this, [once].concat(Array.prototype.slice.call(arguments, 0)));
+            render.apply(this, Array.prototype.slice.call(arguments, 0));
 
-            gl.disableVertexAttribArray(attributes.position);
+            gl.drawArrays(_.buffers.mode, 0, _.buffers.size);
         }
     };
     _.programs[name] = ret;
