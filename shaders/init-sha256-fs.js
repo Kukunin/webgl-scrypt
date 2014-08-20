@@ -1,15 +1,3 @@
-vec2 safe_add (in vec2 a, in vec2 b)
-{
-    vec2 ret = a + b;
-    if (ret.y >= float(Ox10000)) {
-        ret += vec2(1.0, -1.*float(Ox10000));
-    }
-    if (ret.x >= float(Ox10000)) {
-        ret.x -= float(Ox10000);
-    }
-    return ret;
-}
-
 uniform vec2 H[8];
 uniform vec2 header[19];
 uniform vec2 base_nonce;
