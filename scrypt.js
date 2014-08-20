@@ -333,12 +333,12 @@ function initBuffers() {
 }
 
 function initPrograms() {
-    _.programs["init-sha256"] = initSHA256Program();
-    _.programs["fill-sha256-work"] = fillSHA256workProgram();
-    _.programs["compute-sha256"] = computeSHA256Program();
-    _.programs["copier"] = copierProgram();
-    _.programs["salsa"] = salsaProgram();
-    _.programs["texture-copy"] = textureCopyProgram();
+    initSHA256Program();
+    fillSHA256workProgram();
+    computeSHA256Program();
+    copierProgram();
+    salsaProgram();
+    textureCopyProgram();
 }
 
 /**
@@ -347,7 +347,7 @@ function initPrograms() {
 */
 function initSHA256Program () {
     var locations = {};
-    return program("shaders/init-sha256-fs.js", function(program) {
+    return program("init-sha256", "shaders/init-sha256-fs.js", function(program) {
         locations = {
             H:       gl.getUniformLocation(program, "H"),
             header:  gl.getUniformLocation(program, "header"),
@@ -369,7 +369,7 @@ function initSHA256Program () {
 */
 function fillSHA256workProgram() {
     var locations = {};
-    return program("shaders/fill-sha256-work.fs.js", function(program) {
+    return program("fill-sha256-work", "shaders/fill-sha256-work.fs.js", function(program) {
         locations = {
             round: gl.getUniformLocation(program, "round"),
             sampler: gl.getUniformLocation(program, "uSampler")
@@ -389,7 +389,7 @@ function fillSHA256workProgram() {
 */
 function computeSHA256Program() {
     var locations = {};
-    return program("shaders/compute-sha256.fs.js", function(program) {
+    return program("compute-sha256", "shaders/compute-sha256.fs.js", function(program) {
         locations = {
             round: gl.getUniformLocation(program, "round"),
             sampler: gl.getUniformLocation(program, "uSampler"),
@@ -434,7 +434,7 @@ function computeSHA256Program() {
 */
 function copierProgram() {
     var locations = {};
-    return program("shaders/copier.fs.js", function(program) {
+    return program("copier", "shaders/copier.fs.js", function(program) {
         locations = {
             source:      gl.getUniformLocation(program, "source"),
             destination: gl.getUniformLocation(program, "destination"),
@@ -466,7 +466,7 @@ function copierProgram() {
 */
 function textureCopyProgram() {
     var locations = {};
-    return program("shaders/texture-copy.fs.js", function(program) {
+    return program("texture-copy", "shaders/texture-copy.fs.js", function(program) {
         locations = {
             sampler:     gl.getUniformLocation(program, "uSampler")
         };
@@ -488,7 +488,7 @@ function textureCopyProgram() {
 */
 function salsaProgram() {
     var locations = {};
-    return program("shaders/salsa.fs.js", function(program) {
+    return program("salsa", "shaders/salsa.fs.js", function(program) {
         locations = {
             round:       gl.getUniformLocation(program, "round"),
             part:        gl.getUniformLocation(program, "part"),
@@ -511,7 +511,7 @@ function salsaProgram() {
     });
 }
 
-function program(fragment_code, locations, render) {
+function program(name, fragment_code, locations, render) {
     var program = establishProgram("shaders/default-vs.js", fragment_code);
 
     var locations = locations(program);
@@ -528,9 +528,14 @@ function program(fragment_code, locations, render) {
         use: function() {
             gl.useProgram(program);
             once = false;
+            _.programs.active = name;
+
             return ret;
         },
         render: function() {
+            if (_.programs.active != name) {
+                ret.use();
+            }
             r++;
             gl.bindBuffer(gl.ARRAY_BUFFER, _.buffers.vertices);
             gl.enableVertexAttribArray(attributes.position);
@@ -541,6 +546,7 @@ function program(fragment_code, locations, render) {
             gl.disableVertexAttribArray(attributes.position);
         }
     };
+    _.programs[name] = ret;
     return ret;
 }
 
@@ -574,7 +580,6 @@ function match(name, expected, actual) {
 */
 function sha256_round(target, dont_copy) {
     /* Compute and fill work elements */
-    _.programs['fill-sha256-work'].use();
 
     /* Fill work arrays */
     whatToRender(_.TMP_WORK_OFFSET + 16, 48);
@@ -583,32 +588,26 @@ function sha256_round(target, dont_copy) {
         _.programs['fill-sha256-work'].render(i);
     }
     _.textures.swap();
-    _.programs['texture-copy'].use().render();
+    _.programs['texture-copy'].render();
 
     /* Compute the hash */
     whatToRender(_.TMP_HASH_OFFSET, 8);
     if (!dont_copy) {
         //Copy initial hash
-        _.programs['copier'].use();
         _.textures.swap();
         _.programs['copier'].render(target, _.TMP_HASH_OFFSET, 8, _.COPY_MODE);
     }
-    _.programs['compute-sha256'].use();
     for(var i = 0; i < 32; i++) {
         _.textures.swap();
         _.programs['compute-sha256'].render(i);
     }
 
     /* Copy the result to target block */
-    _.programs['copier'].use();
-
     whatToRender(target, 8);
     _.textures.swap();
     _.programs['copier'].render(_.TMP_HASH_OFFSET, target, 8, _.SUM_MODE);
     _.textures.swap();
-    _.programs['texture-copy'].use().render();
-
-    _.programs['copier'].use();
+    _.programs['texture-copy'].render();
 }
 
 function fillScryptX() {
@@ -616,46 +615,46 @@ function fillScryptX() {
         /* TODO: iKey || Header round 1 is always the same */
         whatToRender(_.TMP_WORK_OFFSET, 16);
         _.textures.swap();
-        _.programs['copier'].use().render(_.NONCED_HEADER_OFFSET, _.TMP_WORK_OFFSET, 16);
+        _.programs['copier'].render(_.NONCED_HEADER_OFFSET, _.TMP_WORK_OFFSET, 16);
         _.textures.swap();
-        _.programs['texture-copy'].use().render();
+        _.programs['texture-copy'].render();
 
         whatToRender(_.TEMP_HASH_OFFSET, 8);
         _.textures.swap();
-        _.programs['copier'].use().render(_.IKEY_HASH1_OFFSET, _.TEMP_HASH_OFFSET, 8);
+        _.programs['copier'].render(_.IKEY_HASH1_OFFSET, _.TEMP_HASH_OFFSET, 8);
         _.textures.swap();
-        _.programs['texture-copy'].use().render();
+        _.programs['texture-copy'].render();
         sha256_round(_.TEMP_HASH_OFFSET);
 
         /* iKey || Header+i final hash */
         whatToRender(_.TMP_WORK_OFFSET, 16);
         _.textures.swap();
-        _.programs['copier'].use().render(_.NONCED_HEADER_OFFSET + 16, _.TMP_WORK_OFFSET, 5, _.HWORK_MODE, 1184);
+        _.programs['copier'].render(_.NONCED_HEADER_OFFSET + 16, _.TMP_WORK_OFFSET, 5, _.HWORK_MODE, 1184);
         _.textures.swap();
         _.programs['copier'].render(null, _.TMP_WORK_OFFSET + 4, 1, _.VALUE_MODE, [0, i+1]);
         _.textures.swap();
-        _.programs['texture-copy'].use().render();
+        _.programs['texture-copy'].render();
         sha256_round(_.TEMP_HASH_OFFSET);
 
         /* oKey || h(iKey || Header+i) final hash */
         whatToRender(_.TMP_WORK_OFFSET, 16);
         _.textures.swap();
-        _.programs['copier'].use().render(_.TEMP_HASH_OFFSET, _.TMP_WORK_OFFSET, 8, _.HWORK_MODE, 768);
+        _.programs['copier'].render(_.TEMP_HASH_OFFSET, _.TMP_WORK_OFFSET, 8, _.HWORK_MODE, 768);
         _.textures.swap();
-        _.programs['texture-copy'].use().render();
+        _.programs['texture-copy'].render();
 
         whatToRender(_.TEMP_HASH_OFFSET, 8);
         _.textures.swap();
-        _.programs['copier'].use().render(_.OKEY_HASH1_OFFSET, _.TEMP_HASH_OFFSET, 8);
+        _.programs['copier'].render(_.OKEY_HASH1_OFFSET, _.TEMP_HASH_OFFSET, 8);
         _.textures.swap();
-        _.programs['texture-copy'].use().render();
+        _.programs['texture-copy'].render();
         sha256_round(_.TEMP_HASH_OFFSET);
 
         whatToRender(_.SCRYPT_X_OFFSET + (i*8), 8);
         _.textures.swap();
-        _.programs['copier'].use().render(_.TEMP_HASH_OFFSET, _.SCRYPT_X_OFFSET + (i*8), 8, _.REVERT_MODE);
+        _.programs['copier'].render(_.TEMP_HASH_OFFSET, _.SCRYPT_X_OFFSET + (i*8), 8, _.REVERT_MODE);
         _.textures.swap();
-        _.programs['texture-copy'].use().render();
+        _.programs['texture-copy'].render();
     }
 }
 
@@ -663,17 +662,16 @@ function salsa8(di, xi) {
     /* Xor di 16 words with xi ones*/
     whatToRender(_.SCRYPT_X_OFFSET + di, 16);
     _.textures.swap();
-    _.programs['copier'].use().render(_.SCRYPT_X_OFFSET + xi, _.SCRYPT_X_OFFSET + di, 16, _.XOR_MODE);
+    _.programs['copier'].render(_.SCRYPT_X_OFFSET + xi, _.SCRYPT_X_OFFSET + di, 16, _.XOR_MODE);
     _.textures.swap();
-    _.programs['texture-copy'].use().render();
+    _.programs['texture-copy'].render();
 
     /* Copy di 16 words to TMP */
     whatToRender(_.TMP_SCRYPT_X_OFFSET, 16);
     _.textures.swap();
-    _.programs['copier'].use().render(_.SCRYPT_X_OFFSET + di, _.TMP_SCRYPT_X_OFFSET, 16, _.COPY_MODE);
+    _.programs['copier'].render(_.SCRYPT_X_OFFSET + di, _.TMP_SCRYPT_X_OFFSET, 16, _.COPY_MODE);
 
     /* Generate salsa8 */
-    _.programs['salsa'].use();
     for (var q = 0; q < 4; q++) {
         for (var j = 0; j < 2; j++) {
             for (var i = 0; i < 4; i++) {
@@ -685,62 +683,62 @@ function salsa8(di, xi) {
 
     whatToRender(_.SCRYPT_X_OFFSET);
     _.textures.swap();
-    _.programs['copier'].use().render(_.TMP_SCRYPT_X_OFFSET, _.SCRYPT_X_OFFSET + di, 16, _.SUM_MODE);
+    _.programs['copier'].render(_.TMP_SCRYPT_X_OFFSET, _.SCRYPT_X_OFFSET + di, 16, _.SUM_MODE);
     _.textures.swap();
-    _.programs['texture-copy'].use().render();
+    _.programs['texture-copy'].render();
 }
 
 function computeX() {
     //iKey || X round 1
     whatToRender(_.TMP_WORK_OFFSET, 16);
     _.textures.swap();
-    _.programs['copier'].use().render(_.SCRYPT_X_OFFSET, _.TMP_WORK_OFFSET, 16, _.REVERT_MODE);
+    _.programs['copier'].render(_.SCRYPT_X_OFFSET, _.TMP_WORK_OFFSET, 16, _.REVERT_MODE);
     _.textures.swap();
-    _.programs['texture-copy'].use().render();
+    _.programs['texture-copy'].render();
 
     whatToRender(_.TEMP_HASH_OFFSET, 8);
     _.textures.swap();
-    _.programs['copier'].use().render(_.IKEY_HASH1_OFFSET, _.TEMP_HASH_OFFSET, 8);
+    _.programs['copier'].render(_.IKEY_HASH1_OFFSET, _.TEMP_HASH_OFFSET, 8);
     _.textures.swap();
-    _.programs['texture-copy'].use().render();
+    _.programs['texture-copy'].render();
     sha256_round(_.TEMP_HASH_OFFSET);
 
     //iKey || X round 2
     whatToRender(_.TMP_WORK_OFFSET, 16);
     _.textures.swap();
-    _.programs['copier'].use().render(_.SCRYPT_X_OFFSET + 16, _.TMP_WORK_OFFSET, 16, _.REVERT_MODE);
+    _.programs['copier'].render(_.SCRYPT_X_OFFSET + 16, _.TMP_WORK_OFFSET, 16, _.REVERT_MODE);
     _.textures.swap();
-    _.programs['texture-copy'].use().render();
+    _.programs['texture-copy'].render();
     sha256_round(_.TEMP_HASH_OFFSET);
 
 
     //iKey || X round 3
     whatToRender(_.TMP_WORK_OFFSET, 16);
     _.textures.swap();
-    _.programs['copier'].use().render(_.SCRYPT_X_OFFSET, _.TMP_WORK_OFFSET, 1, _.HWORK_MODE, 1568);
+    _.programs['copier'].render(_.SCRYPT_X_OFFSET, _.TMP_WORK_OFFSET, 1, _.HWORK_MODE, 1568);
     _.textures.swap();
     _.programs['copier'].render(null, _.TMP_WORK_OFFSET, 1, _.VALUE_MODE, [0, 1]);
     _.textures.swap();
-    _.programs['texture-copy'].use().render();
+    _.programs['texture-copy'].render();
     sha256_round(_.TEMP_HASH_OFFSET);
 
     /* oKey || h(iKey || X) final hash */
     whatToRender(_.TMP_WORK_OFFSET, 16);
     _.textures.swap();
-    _.programs['copier'].use().render(_.TEMP_HASH_OFFSET, _.TMP_WORK_OFFSET, 8, _.HWORK_MODE, 768);
+    _.programs['copier'].render(_.TEMP_HASH_OFFSET, _.TMP_WORK_OFFSET, 8, _.HWORK_MODE, 768);
     _.textures.swap();
-    _.programs['texture-copy'].use().render();
+    _.programs['texture-copy'].render();
 
     whatToRender(_.TEMP_HASH_OFFSET, 8);
     _.textures.swap();
-    _.programs['copier'].use().render(_.OKEY_HASH1_OFFSET, _.TEMP_HASH_OFFSET, 8);
+    _.programs['copier'].render(_.OKEY_HASH1_OFFSET, _.TEMP_HASH_OFFSET, 8);
     _.textures.swap();
-    _.programs['texture-copy'].use().render();
+    _.programs['texture-copy'].render();
     sha256_round(_.TEMP_HASH_OFFSET);
 
     whatToRender(_.FINAL_SCRYPT_OFFSET, 8);
     _.textures.swap();
-    _.programs['copier'].use().render(_.TEMP_HASH_OFFSET, _.FINAL_SCRYPT_OFFSET, 8);
+    _.programs['copier'].render(_.TEMP_HASH_OFFSET, _.FINAL_SCRYPT_OFFSET, 8);
 }
 
 $(function() {
@@ -762,12 +760,11 @@ $(function() {
 
     /* Fill both textures with initial values */
     whatToRender(0, 180);
-    _.programs['init-sha256'].use();
     _.textures.swap();
     _.programs['init-sha256'].render(header_bin.slice(0, 38), nonce_bin);
 
     _.textures.swap();
-    _.programs['texture-copy'].use().render();
+    _.programs['texture-copy'].render();
 
     /* initial tests */
     gl.readPixels(_.TMP_HASH_OFFSET, 0, 24, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
@@ -792,13 +789,13 @@ $(function() {
     _.textures.swap();
     _.programs['copier'].render(_.HEADER_HASH1_OFFSET, _.HMAC_KEY_HASH_OFFSET, 8, _.COPY_MODE);
     _.textures.swap();
-    _.programs['texture-copy'].use().render();
+    _.programs['texture-copy'].render();
 
     //Copy padded header last part to work arrays
     whatToRender(_.TMP_WORK_OFFSET, 16);
-    _.programs['copier'].use().render(_.PADDED_HEADER_OFFSET, _.TMP_WORK_OFFSET, 16, _.COPY_MODE);
+    _.programs['copier'].render(_.PADDED_HEADER_OFFSET, _.TMP_WORK_OFFSET, 16, _.COPY_MODE);
     _.textures.swap();
-    _.programs['texture-copy'].use().render();
+    _.programs['texture-copy'].render();
 
     sha256_round(_.HMAC_KEY_HASH_OFFSET);
 
@@ -814,7 +811,7 @@ $(function() {
     _.textures.swap();
     _.programs['copier'].render(_.HMAC_KEY_HASH_OFFSET, _.OKEY_OFFSET, 8, _.XOR_MODE);
     _.textures.swap();
-    _.programs['texture-copy'].use().render();
+    _.programs['texture-copy'].render();
 
     gl.readPixels(_.IKEY_OFFSET, 0, 32, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
     match("iKey/oKey", "62d4ca3c87e6f312e478d70a3bd8047140fe4ee22f027cf56daf6076dc87012a363636363636363636363636363636363636363636363636363636363636363608bea056ed8c99788e12bd6051b26e1b2a9424884568169f07c50a1cb6ed6b405c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c", printBuffer(buf, 32));
@@ -822,9 +819,9 @@ $(function() {
     /* Create iKey initial hash */
     whatToRender(_.TMP_WORK_OFFSET, 16);
     _.textures.swap();
-    _.programs['copier'].use().render(_.IKEY_OFFSET, _.TMP_WORK_OFFSET, 16, _.COPY_MODE);
+    _.programs['copier'].render(_.IKEY_OFFSET, _.TMP_WORK_OFFSET, 16, _.COPY_MODE);
     _.textures.swap();
-    _.programs['texture-copy'].use().render();
+    _.programs['texture-copy'].render();
     sha256_round(_.IKEY_HASH1_OFFSET);
     gl.readPixels(_.IKEY_HASH1_OFFSET, 0, 8, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
     match("iKey base hash", "1810219db381a5578d2a3163f1c8300d31dffbcd47d7cad0c2f2be550f287816", printBuffer(buf, 8));
@@ -834,7 +831,7 @@ $(function() {
     _.textures.swap();
     _.programs['copier'].render(_.OKEY_OFFSET, _.TMP_WORK_OFFSET, 16, _.COPY_MODE);
     _.textures.swap();
-    _.programs['texture-copy'].use().render();
+    _.programs['texture-copy'].render();
     sha256_round(_.OKEY_HASH1_OFFSET);
     gl.readPixels(_.OKEY_HASH1_OFFSET, 0, 8, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
     match("oKey base hash", "14d07616f180c5531ea198c14c20997445b7cf0cfc90d3650e59c6a1af3626a2", printBuffer(buf, 8));
@@ -846,10 +843,10 @@ $(function() {
     for(var i = 0; i < 1024; i++) {
         whatToRender(_.SCRYPT_V_OFFSET + (i*32), 32);
         _.textures.swap();
-        _.programs['copier'].use().render(_.SCRYPT_X_OFFSET, _.SCRYPT_V_OFFSET + (i*32), 32, _.COPY_MODE);
+        _.programs['copier'].render(_.SCRYPT_X_OFFSET, _.SCRYPT_V_OFFSET + (i*32), 32, _.COPY_MODE);
         /* TODO avoid this copy operation. Fill V only for one texture */
         _.textures.swap();
-        _.programs['texture-copy'].use().render();
+        _.programs['texture-copy'].render();
 
         salsa8(0, 16);
         salsa8(16, 0);
@@ -863,15 +860,15 @@ $(function() {
 
     whatToRender("whole");
     _.textures.swap();
-    _.programs['texture-copy'].use().render();
+    _.programs['texture-copy'].render();
 
 
     for(var i = 0; i < 1024; i++) {
         whatToRender(_.SCRYPT_X_OFFSET, 32);
         _.textures.swap();
-        _.programs['copier'].use().render(null, _.SCRYPT_X_OFFSET, 32, _.SCRYPT_MODE);
+        _.programs['copier'].render(null, _.SCRYPT_X_OFFSET, 32, _.SCRYPT_MODE);
         _.textures.swap();
-        _.programs['texture-copy'].use().render();
+        _.programs['texture-copy'].render();
 
         salsa8(0, 16);
         salsa8(16, 0);
@@ -885,7 +882,7 @@ $(function() {
     whatToRender("whole");
     _.textures.swap();
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    _.programs['texture-copy'].use().render();
+    _.programs['texture-copy'].render();
 
     gl.readPixels(_.FINAL_SCRYPT_OFFSET, 0, 8, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
     match("SCRYPT HASH", "c75792640f558294e4cb2dd70f3c898c47221f1803452ef8f42dd932a6180000", printBuffer(buf, 8));
