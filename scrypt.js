@@ -1,3 +1,4 @@
+var t = 0, r = 0;
 /* SHA-256 related stuff */
 var h =  [0x6a09, 0xe667, 0xbb67, 0xae85,
           0x3c6e, 0xf372, 0xa54f, 0xf53a,
@@ -212,6 +213,7 @@ function initTextures() {
     (function() {
         var pingpong = false;
         _.textures.swap = function() {
+            t++;
             if ( pingpong ) {
                 _.textures.setPrimary();
             } else {
@@ -527,6 +529,7 @@ function program(fragment_code, locations, render) {
             return ret;
         },
         render: function() {
+            r++;
             gl.bindBuffer(gl.ARRAY_BUFFER, _.buffers.vertices);
             gl.enableVertexAttribArray(attributes.position);
             gl.vertexAttribPointer(attributes.position, 2, gl.FLOAT, false, 0, 0);
@@ -895,4 +898,6 @@ $(function() {
 
     var msecTime = (((new Date()).getTime())-startTime);
     console.log("Running time: " + msecTime + "ms");
+
+    console.log(t + " texture swaps ans " + r + " renders");
 });
