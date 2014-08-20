@@ -177,7 +177,6 @@ function initTextures() {
 
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-    console.log(salsa.length);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 16, 2, 0, gl.RGBA, gl.UNSIGNED_BYTE, salsa);
 
     _.textures.K = gl.createTexture();
@@ -756,21 +755,25 @@ $(function() {
     _.programs['texture-copy'].render();
 
     /* initial tests */
-    gl.readPixels(_.TMP_HASH_OFFSET, 0, 24, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
-    match("Initial round", "6a09e667bb67ae853c6ef372a54ff53a510e527f9b05688c1f83d9ab5be0cd1902000000ff1fd715a981626682fd8d73afda09d825722d6ba5f665b1be6ed400242f7b650c3623c0f087fefdeefcd4c84d916a511551425fabaf52d55d559649", printBuffer(buf, 24));
-    gl.readPixels(_.NONCED_HEADER_OFFSET, 0, 20, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
-    match("Nonced header", "02000000ff1fd715a981626682fd8d73afda09d825722d6ba5f665b1be6ed400242f7b650c3623c0f087fefdeefcd4c84d916a511551425fabaf52d55d5596498ba5f869f139d55346e2021b00039bfc", printBuffer(buf, 20));
-    gl.readPixels(_.PADDED_HEADER_OFFSET, 0, 16, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
-    match("Padded header", "8ba5f869f139d55346e2021b00039bfc800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000280", printBuffer(buf, 16));
-    gl.readPixels(_.IKEY_OFFSET, 0, 32, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
-    match("iKey and oKey masks", "363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636365c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c", printBuffer(buf, 32));
-    gl.readPixels(_.IKEY_HASH1_OFFSET, 0, 16, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
-    match("iKey and oKey initial hashes", "6a09e667bb67ae853c6ef372a54ff53a510e527f9b05688c1f83d9ab5be0cd196a09e667bb67ae853c6ef372a54ff53a510e527f9b05688c1f83d9ab5be0cd19", printBuffer(buf, 16));
+    if (debug) {
+        gl.readPixels(_.TMP_HASH_OFFSET, 0, 24, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+        match("Initial round", "6a09e667bb67ae853c6ef372a54ff53a510e527f9b05688c1f83d9ab5be0cd1902000000ff1fd715a981626682fd8d73afda09d825722d6ba5f665b1be6ed400242f7b650c3623c0f087fefdeefcd4c84d916a511551425fabaf52d55d559649", printBuffer(buf, 24));
+        gl.readPixels(_.NONCED_HEADER_OFFSET, 0, 20, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+        match("Nonced header", "02000000ff1fd715a981626682fd8d73afda09d825722d6ba5f665b1be6ed400242f7b650c3623c0f087fefdeefcd4c84d916a511551425fabaf52d55d5596498ba5f869f139d55346e2021b00039bfc", printBuffer(buf, 20));
+        gl.readPixels(_.PADDED_HEADER_OFFSET, 0, 16, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+        match("Padded header", "8ba5f869f139d55346e2021b00039bfc800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000280", printBuffer(buf, 16));
+        gl.readPixels(_.IKEY_OFFSET, 0, 32, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+        match("iKey and oKey masks", "363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636365c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c", printBuffer(buf, 32));
+        gl.readPixels(_.IKEY_HASH1_OFFSET, 0, 16, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+        match("iKey and oKey initial hashes", "6a09e667bb67ae853c6ef372a54ff53a510e527f9b05688c1f83d9ab5be0cd196a09e667bb67ae853c6ef372a54ff53a510e527f9b05688c1f83d9ab5be0cd19", printBuffer(buf, 16));
+    }
 
     /* First round for key hash */
     sha256_round(_.HEADER_HASH1_OFFSET, true);
-    gl.readPixels(_.HEADER_HASH1_OFFSET, 0, 8, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
-    match("Header base hash", "fd4fc824af9db9c0d882e8d70fd5d4a163ab22add3b7cd6dc336050003deca6e", printBuffer(buf, 8));
+    if (debug) {
+        gl.readPixels(_.HEADER_HASH1_OFFSET, 0, 8, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+        match("Header base hash", "fd4fc824af9db9c0d882e8d70fd5d4a163ab22add3b7cd6dc336050003deca6e", printBuffer(buf, 8));
+    }
 
     /* Final round for key hash */
     //Copy first round hash to destination position
@@ -788,8 +791,10 @@ $(function() {
 
     sha256_round(_.HMAC_KEY_HASH_OFFSET);
 
-    gl.readPixels(_.HMAC_KEY_HASH_OFFSET, 0, 8, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
-    match("Final hash", "54e2fc0ab1d0c524d24ee13c0dee324776c878d419344ac35b995640eab1371c", printBuffer(buf, 8));
+    if (debug) {
+        gl.readPixels(_.HMAC_KEY_HASH_OFFSET, 0, 8, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+        match("Final hash", "54e2fc0ab1d0c524d24ee13c0dee324776c878d419344ac35b995640eab1371c", printBuffer(buf, 8));
+    }
 
     whatToRender(_.IKEY_OFFSET, 32);
     /* Create iKey */
@@ -802,8 +807,10 @@ $(function() {
     _.textures.swap();
     _.programs['texture-copy'].render();
 
-    gl.readPixels(_.IKEY_OFFSET, 0, 32, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
-    match("iKey/oKey", "62d4ca3c87e6f312e478d70a3bd8047140fe4ee22f027cf56daf6076dc87012a363636363636363636363636363636363636363636363636363636363636363608bea056ed8c99788e12bd6051b26e1b2a9424884568169f07c50a1cb6ed6b405c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c", printBuffer(buf, 32));
+    if (debug) {
+        gl.readPixels(_.IKEY_OFFSET, 0, 32, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+        match("iKey/oKey", "62d4ca3c87e6f312e478d70a3bd8047140fe4ee22f027cf56daf6076dc87012a363636363636363636363636363636363636363636363636363636363636363608bea056ed8c99788e12bd6051b26e1b2a9424884568169f07c50a1cb6ed6b405c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c", printBuffer(buf, 32));
+    }
 
     /* Create iKey initial hash */
     whatToRender(_.TMP_WORK_OFFSET, 16);
@@ -812,8 +819,10 @@ $(function() {
     _.textures.swap();
     _.programs['texture-copy'].render();
     sha256_round(_.IKEY_HASH1_OFFSET);
-    gl.readPixels(_.IKEY_HASH1_OFFSET, 0, 8, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
-    match("iKey base hash", "1810219db381a5578d2a3163f1c8300d31dffbcd47d7cad0c2f2be550f287816", printBuffer(buf, 8));
+    if (debug) {
+        gl.readPixels(_.IKEY_HASH1_OFFSET, 0, 8, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+        match("iKey base hash", "1810219db381a5578d2a3163f1c8300d31dffbcd47d7cad0c2f2be550f287816", printBuffer(buf, 8));
+    }
 
     /* Create oKey initial hash */
     whatToRender(_.TMP_WORK_OFFSET, 16);
@@ -822,12 +831,16 @@ $(function() {
     _.textures.swap();
     _.programs['texture-copy'].render();
     sha256_round(_.OKEY_HASH1_OFFSET);
-    gl.readPixels(_.OKEY_HASH1_OFFSET, 0, 8, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
-    match("oKey base hash", "14d07616f180c5531ea198c14c20997445b7cf0cfc90d3650e59c6a1af3626a2", printBuffer(buf, 8));
+    if (debug) {
+        gl.readPixels(_.OKEY_HASH1_OFFSET, 0, 8, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+        match("oKey base hash", "14d07616f180c5531ea198c14c20997445b7cf0cfc90d3650e59c6a1af3626a2", printBuffer(buf, 8));
+    }
 
     fillScryptX();
-    gl.readPixels(_.SCRYPT_X_OFFSET, 0, 32, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
-    match("Scrypt X", "65e8bba22ac94d38e28aa9b7f3005501abb5bad0a01ddd9e0ff0b241cea4b85163a5c4366f372bb6aff7ecf17a377087dfa2f06185cccfc5454fa183b0a61179ce4a765393e2605646d993b7348dc902203e59f65510feb509c448cf12895a6e228989e52be2fc021ca36fd4d8342ecaabd4fe15feada69d114728f4dd77033c", printBuffer(buf, 32));
+    if (debug) {
+        gl.readPixels(_.SCRYPT_X_OFFSET, 0, 32, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+        match("Scrypt X", "65e8bba22ac94d38e28aa9b7f3005501abb5bad0a01ddd9e0ff0b241cea4b85163a5c4366f372bb6aff7ecf17a377087dfa2f06185cccfc5454fa183b0a61179ce4a765393e2605646d993b7348dc902203e59f65510feb509c448cf12895a6e228989e52be2fc021ca36fd4d8342ecaabd4fe15feada69d114728f4dd77033c", printBuffer(buf, 32));
+    }
 
     for(var i = 0; i < 1024; i++) {
         whatToRender(_.SCRYPT_V_OFFSET + (i*32), 32);
@@ -841,11 +854,13 @@ $(function() {
         salsa8(16, 0);
     }
 
-    gl.readPixels(_.SCRYPT_X_OFFSET, 0, 32, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
-    match("1024 salsa rounds", "df29c599f41f175b62737cd533e7adce586bbddaeaef3ba7ffd1be591dceaaba9822ef2d0438f00e992ab4bcf5cf0942ab0439bac73e761c2472db0cfc170b44fcf1cc3e8d03c71d4a3a54b63220d201d82ea8ed22b8a5138123adafb00c3d1a5640c5683766cc2fd2fd009531222e99e4fba360412ec7bbd70b327644a4aebb", printBuffer(buf, 32));
+    if (debug) {
+        gl.readPixels(_.SCRYPT_X_OFFSET, 0, 32, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+        match("1024 salsa rounds", "df29c599f41f175b62737cd533e7adce586bbddaeaef3ba7ffd1be591dceaaba9822ef2d0438f00e992ab4bcf5cf0942ab0439bac73e761c2472db0cfc170b44fcf1cc3e8d03c71d4a3a54b63220d201d82ea8ed22b8a5138123adafb00c3d1a5640c5683766cc2fd2fd009531222e99e4fba360412ec7bbd70b327644a4aebb", printBuffer(buf, 32));
 
-    gl.readPixels(_.SCRYPT_V_OFFSET, 0, 64, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
-    match("First 64 words of V", "65e8bba22ac94d38e28aa9b7f3005501abb5bad0a01ddd9e0ff0b241cea4b85163a5c4366f372bb6aff7ecf17a377087dfa2f06185cccfc5454fa183b0a61179ce4a765393e2605646d993b7348dc902203e59f65510feb509c448cf12895a6e228989e52be2fc021ca36fd4d8342ecaabd4fe15feada69d114728f4dd77033c6ccb9335ef55d24890a1dcb7c20e9f0a2cebec8625eb8dba76c81743149eac799fb212d323b424207119baf1158bbce20cbb9f4584db1da8d67e62fa2c2a2555a45dee8fe66edef4ca83cf19ea304f683ffa2a195d446e9b1240dda69decf03327eb8821fc1590da0a751a958c7476e6817a8dfe8a5f1bd7dc86500d89b3279c", printBuffer(buf, 64));
+        gl.readPixels(_.SCRYPT_V_OFFSET, 0, 64, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+        match("First 64 words of V", "65e8bba22ac94d38e28aa9b7f3005501abb5bad0a01ddd9e0ff0b241cea4b85163a5c4366f372bb6aff7ecf17a377087dfa2f06185cccfc5454fa183b0a61179ce4a765393e2605646d993b7348dc902203e59f65510feb509c448cf12895a6e228989e52be2fc021ca36fd4d8342ecaabd4fe15feada69d114728f4dd77033c6ccb9335ef55d24890a1dcb7c20e9f0a2cebec8625eb8dba76c81743149eac799fb212d323b424207119baf1158bbce20cbb9f4584db1da8d67e62fa2c2a2555a45dee8fe66edef4ca83cf19ea304f683ffa2a195d446e9b1240dda69decf03327eb8821fc1590da0a751a958c7476e6817a8dfe8a5f1bd7dc86500d89b3279c", printBuffer(buf, 64));
+    }
 
     whatToRender("whole");
     _.textures.swap();
@@ -863,8 +878,10 @@ $(function() {
         salsa8(16, 0);
     }
 
-    gl.readPixels(_.SCRYPT_X_OFFSET, 0, 32, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
-    match("Restore to X", "1f39e39a9d78e53adadafc030499012f187501d0b23ab166f39296dfe0b75b4bc9e91c0c40d8feafe4d543c8649b2ee145415ffbf90358e980c3d0c2aab0b7a1161b459166df29cb172ba08de0c522c71cd3bf416e0b6931eb39c18eaf0d49efa33f5693997eb9e90d37a1b76a4c887ac61beb75cafa253859f18f262680e5f6", printBuffer(buf, 32));
+    if (debug) {
+        gl.readPixels(_.SCRYPT_X_OFFSET, 0, 32, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+        match("Restore to X", "1f39e39a9d78e53adadafc030499012f187501d0b23ab166f39296dfe0b75b4bc9e91c0c40d8feafe4d543c8649b2ee145415ffbf90358e980c3d0c2aab0b7a1161b459166df29cb172ba08de0c522c71cd3bf416e0b6931eb39c18eaf0d49efa33f5693997eb9e90d37a1b76a4c887ac61beb75cafa253859f18f262680e5f6", printBuffer(buf, 32));
+    }
 
     computeX();
 
@@ -875,14 +892,15 @@ $(function() {
 
     gl.readPixels(_.FINAL_SCRYPT_OFFSET, 0, 8, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
     match("SCRYPT HASH", "c75792640f558294e4cb2dd70f3c898c47221f1803452ef8f42dd932a6180000", printBuffer(buf, 8));
-
     console.log("Scrypt hash is " + printBuffer(buf, 8));
 
-    gl.readPixels(244 + _.FINAL_SCRYPT_OFFSET, 32, 8, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
-    match("SECOND SCRYPT HASH", "1630ffa9ad818041406d49aa7ebf2bdda49f76d4d6cc0ac9d22b9e5aaed296c2", printBuffer(buf, 8));
+    if (debug) {
+        gl.readPixels(244 + _.FINAL_SCRYPT_OFFSET, 32, 8, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+        match("SECOND SCRYPT HASH", "1630ffa9ad818041406d49aa7ebf2bdda49f76d4d6cc0ac9d22b9e5aaed296c2", printBuffer(buf, 8));
 
-    gl.readPixels(244 + _.NONCED_HEADER_OFFSET, 32, 20, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
-    match("SECOND Nonced header", "02000000ff1fd715a981626682fd8d73afda09d825722d6ba5f665b1be6ed400242f7b650c3623c0f087fefdeefcd4c84d916a511551425fabaf52d55d5596498ba5f869f139d55346e2021b01039bfc", printBuffer(buf, 20));
+        gl.readPixels(244 + _.NONCED_HEADER_OFFSET, 32, 20, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+        match("SECOND Nonced header", "02000000ff1fd715a981626682fd8d73afda09d825722d6ba5f665b1be6ed400242f7b650c3623c0f087fefdeefcd4c84d916a511551425fabaf52d55d5596498ba5f869f139d55346e2021b01039bfc", printBuffer(buf, 20));
+    }
 
     var msecTime = (((new Date()).getTime())-startTime);
     console.log("Running time: " + msecTime + "ms");
