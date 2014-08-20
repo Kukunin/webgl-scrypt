@@ -210,6 +210,8 @@ function initTextures() {
     gl.bindFramebuffer(gl.FRAMEBUFFER, _.framebuffers.secondary);
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, _.textures.secondary, 0);
 
+    gl.activeTexture(gl.TEXTURE0);
+
     (function() {
         var pingpong = false;
         _.textures.swap = function() {
@@ -222,8 +224,6 @@ function initTextures() {
         }
         _.textures.setPrimary = function() {
             gl.bindFramebuffer(gl.FRAMEBUFFER, _.framebuffers.secondary);
-
-            gl.activeTexture(gl.TEXTURE0);
             gl.bindTexture(gl.TEXTURE_2D, _.textures.primary);
 
             pingpong = false;
@@ -231,8 +231,6 @@ function initTextures() {
 
         _.textures.setSecondary = function() {
             gl.bindFramebuffer(gl.FRAMEBUFFER, _.framebuffers.primary);
-
-            gl.activeTexture(gl.TEXTURE0);
             gl.bindTexture(gl.TEXTURE_2D, _.textures.secondary);
 
             pingpong = true;
@@ -406,6 +404,8 @@ function computeSHA256Program() {
         gl.bindTexture(gl.TEXTURE_2D, _.textures.K);
         gl.uniform1i(locations.kSampler, 1);
 
+        gl.activeTexture(gl.TEXTURE0);
+
         gl.drawArrays(_.buffers.mode, 0, _.buffers.size);
     });
 }
@@ -504,6 +504,8 @@ function salsaProgram() {
         gl.activeTexture(gl.TEXTURE1);
         gl.bindTexture(gl.TEXTURE_2D, _.textures.salsa);
         gl.uniform1i(locations.kSampler, 1);
+
+        gl.activeTexture(gl.TEXTURE0);
 
         gl.drawArrays(_.buffers.mode, 0, _.buffers.size);
     });
