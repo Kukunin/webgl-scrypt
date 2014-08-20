@@ -1,39 +1,3 @@
-precision mediump float;
-
-/* Defines */
-#define Ox10000 65536.0
-#define Ox8000  32768.0
-
-#define POW_2_01 2.0
-#define POW_2_02 4.0
-#define POW_2_03 8.0
-#define POW_2_04 16.0
-#define POW_2_05 32.0
-#define POW_2_06 64.0
-#define POW_2_07 128.0
-#define POW_2_08 256.0
-#define POW_2_09 512.0
-#define POW_2_10 1024.0
-#define POW_2_11 2048.0
-#define POW_2_12 4096.0
-#define POW_2_13 8192.0
-
-#define BLOCK_SIZE 33012.
-#define TEXTURE_SIZE 1024.
-
-/* Common functions */
-vec4 toRGBA(in vec2 arg) {
-    float V = float(arg.x);
-    float R = floor(V / POW_2_08);
-    V -= R * POW_2_08;
-    float G = V;
-    V = float(arg.y);
-    float B = floor(V / POW_2_08);
-    V -= B * POW_2_08;
-    float A = V;
-    return vec4(R/255., G/255., B/255., A/255.);
-}
-
 /* Math functions */
 
 /* Note: shift should be a power of two, e.g. to shift 3 steps, use 2^3. */
@@ -170,9 +134,9 @@ vec2 K(in float offset) {
     return fromRGBA(texture2D(kSampler, vec2(offset/64., 0.)));
 }
 
-#define TMP_HASH_OFFSET 0.
 #define TMP_BLOCK_OFFSET 8.
 #define WORKS_PER_ROUND 2.
+#define F_TMP_HASH_OFFSET float(TMP_HASH_OFFSET)
 
 void main () {
     vec4 c = gl_FragCoord - 0.5;
@@ -180,9 +144,9 @@ void main () {
     float offset = mod(position, BLOCK_SIZE);
     float block = floor(position / BLOCK_SIZE);
 
-    if ( offset >= TMP_HASH_OFFSET && offset < (TMP_HASH_OFFSET + 8.)) {
-        start = (block * BLOCK_SIZE) + TMP_HASH_OFFSET;
-        float rOffset = (round*WORKS_PER_ROUND) + TMP_HASH_OFFSET;
+    if ( offset >= F_TMP_HASH_OFFSET && offset < (F_TMP_HASH_OFFSET + 8.)) {
+        start = (block * BLOCK_SIZE) + F_TMP_HASH_OFFSET;
+        float rOffset = (round*WORKS_PER_ROUND) + F_TMP_HASH_OFFSET;
 
         vec2 t[8]; //Work array
         vec2 t1, t2;
@@ -204,7 +168,7 @@ void main () {
         }
 
         for (int i = 0; i < 8; i++ ) {
-            if ( offset == (TMP_HASH_OFFSET + float(i))) {
+            if ( offset == (F_TMP_HASH_OFFSET + float(i))) {
                 gl_FragColor = toRGBA(t[i]);
                 break;
             }

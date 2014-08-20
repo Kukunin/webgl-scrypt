@@ -143,6 +143,7 @@ function establishProgram(vertex_shader, fragment_shader) {
         vShaderSource = loadResource(vertex_shader),
         fShader = gl.createShader(gl.FRAGMENT_SHADER),
         fShaderSource = loadResource(fragment_shader);
+        fPrependShaderSource = loadResource("shaders/prepend.fs.js").replace('%%TEXTURE_SIZE%%', _.TEXTURE_SIZE);
 
     gl.shaderSource(vShader, vShaderSource);
     gl.compileShader(vShader);
@@ -151,7 +152,7 @@ function establishProgram(vertex_shader, fragment_shader) {
     }
     gl.attachShader(program, vShader);
 
-    gl.shaderSource(fShader, fShaderSource);
+    gl.shaderSource(fShader, fPrependShaderSource + fShaderSource);
     gl.compileShader(fShader);
     if (!gl.getShaderParameter(fShader, gl.COMPILE_STATUS)) {
         throw gl.getShaderInfoLog(fShader);

@@ -1,33 +1,3 @@
-precision mediump float;
-
-#define Ox10000 65536.0
-#define Ox8000  32768.0
-
-#define POW_2_03 8.0
-#define POW_2_07 128.0
-#define POW_2_08 256.0
-#define POW_2_09 512.0
-#define POW_2_14 16384.0
-
-#define TMP_SCRYPT_X_OFFSET      228.
-#define TMP_SCRYPT_X_OFFSET_END  244.
-
-#define BLOCK_SIZE 33012.
-#define TEXTURE_SIZE 1024.
-
-/* Common functions */
-vec4 toRGBA(in vec2 arg) {
-    float V = float(arg.x);
-    float R = floor(V / POW_2_08);
-    V -= R * POW_2_08;
-    float G = V;
-    V = float(arg.y);
-    float B = floor(V / POW_2_08);
-    V -= B * POW_2_08;
-    float A = V;
-    return vec4(R/255., G/255., B/255., A/255.);
-}
-
 /* Note: shift should be a power of two, e.g. to rotate 3 steps, use 2^3. */
 vec2 rotr (in vec2 a, in float shift)
 {
@@ -104,15 +74,17 @@ vec2 f(float me, float one, float two, float pow) {
     return f(me, one, two, pow, true);
 }
 
+#define F_TMP_SCRYPT_X_OFFSET float(TMP_SCRYPT_X_OFFSET)
+
 void main () {
     vec4 c = gl_FragCoord - 0.5;
     float position = (c.y * TEXTURE_SIZE) + c.x;
     float offset = mod(position, BLOCK_SIZE);
 
-    if (offset >= TMP_SCRYPT_X_OFFSET && offset < TMP_SCRYPT_X_OFFSET + 16.) {
+    if (offset >= F_TMP_SCRYPT_X_OFFSET && offset < F_TMP_SCRYPT_X_OFFSET + 16.) {
         float block = floor(position / BLOCK_SIZE);
-        start = (block * BLOCK_SIZE) + float(TMP_SCRYPT_X_OFFSET);
-        float o = offset - TMP_SCRYPT_X_OFFSET;
+        start = (block * BLOCK_SIZE) + float(F_TMP_SCRYPT_X_OFFSET);
+        float o = offset - F_TMP_SCRYPT_X_OFFSET;
 
         vec4 point = floor(texture2D(kSampler, vec2(o/16., part/2.))*255.);
         if (point.g == round && round == 1.) {

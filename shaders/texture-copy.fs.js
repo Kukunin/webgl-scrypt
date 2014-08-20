@@ -1,5 +1,3 @@
-precision mediump float;
-
 uniform sampler2D uSampler;
 varying vec2 vTextCoord;
 

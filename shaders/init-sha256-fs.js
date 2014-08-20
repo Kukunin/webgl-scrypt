@@ -1,23 +1,3 @@
-precision mediump float;
-
-#define POW_2_08 256.0
-#define Ox10000 65536.0
-
-#define Ox5c5c 23644.0
-#define Ox3636 13878.0
-
-vec4 toRGBA(vec2 arg) {
-      float V = float(arg.x);
-      float R = floor(V / POW_2_08);
-      V -= R * POW_2_08;
-      float G = V;
-      V = float(arg.y);
-      float B = floor(V / POW_2_08);
-      V -= B * POW_2_08;
-      float A = V;
-      return vec4(R/255., G/255., B/255., A/255.);
-}
-
 vec2 safe_add (in vec2 a, in vec2 b)
 {
     vec2 ret = a + b;
@@ -29,42 +9,6 @@ vec2 safe_add (in vec2 a, in vec2 b)
     }
     return ret;
 }
-
-#define TMP_HASH_OFFSET          0
-#define TMP_HASH_OFFSET_END      8
-#define TMP_WORK_OFFSET          8
-#define TMP_WORK_OFFSET_END      24
-#define NONCED_HEADER_OFFSET     72
-#define NONCED_HEADER_OFFSET_END 92
-#define HEADER_HASH1_OFFSET      92
-#define HEADER_HASH1_OFFSET_END  100
-#define PADDED_HEADER_OFFSET     100
-#define PADDED_HEADER_OFFSET_END 116
-#define IKEY_OFFSET              116
-#define IKEY_OFFSET_END          132
-#define OKEY_OFFSET              132
-#define OKEY_OFFSET_END          148
-#define HMAC_KEY_HASH_OFFSET     148
-#define HMAC_KEY_HASH_OFFSET_END 156
-#define IKEY_HASH1_OFFSET        156
-#define IKEY_HASH1_OFFSET_END    164
-#define OKEY_HASH1_OFFSET        164
-#define OKEY_HASH1_OFFSET_END    172
-#define INITIAL_HASH_OFFSET      172
-#define INITIAL_HASH_OFFSET_END  180
-#define TEMP_HASH_OFFSET         180
-#define TEMP_HASH_OFFSET_END     188
-#define FINAL_SCRYPT_OFFSET      188
-#define FINAL_SCRYPT_OFFSET_END  196
-#define SCRYPT_X_OFFSET          196
-#define SCRYPT_X_OFFSET_END      228
-#define TMP_SCRYPT_X_OFFSET      228
-#define TMP_SCRYPT_X_OFFSET_END  244
-#define SCRYPT_V_OFFSET          244
-#define SCRYPT_V_OFFSET_END      33012
-
-#define BLOCK_SIZE 33012.
-#define TEXTURE_SIZE 1024.
 
 uniform vec2 H[8];
 uniform vec2 header[19];

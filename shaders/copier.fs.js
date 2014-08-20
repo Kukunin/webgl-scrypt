@@ -1,10 +1,3 @@
-precision mediump float;
-
-#define POW_2_08 256.0
-
-#define Ox10000 65536.0
-#define Ox8000  32768.0
-
 #define COPY_MODE   1
 #define SUM_MODE    2
 #define XOR_MODE    3
@@ -12,24 +5,6 @@ precision mediump float;
 #define HWORK_MODE  5
 #define REVERT_MODE 6
 #define SCRYPT_MODE 7
-
-#define SCRYPT_V_OFFSET          244.
-
-#define BLOCK_SIZE 33012.
-#define TEXTURE_SIZE 1024.
-
-/* Common functions */
-vec4 toRGBA(in vec2 arg) {
-    float V = float(arg.x);
-    float R = floor(V / POW_2_08);
-    V -= R * POW_2_08;
-    float G = V;
-    V = float(arg.y);
-    float B = floor(V / POW_2_08);
-    V -= B * POW_2_08;
-    float A = V;
-    return vec4(R/255., G/255., B/255., A/255.);
-}
 
 vec2 fromRGBA(in vec4 rgba) {
     rgba *= 255.;
@@ -101,6 +76,7 @@ vec2 and (in vec2 a, in vec2 b)
 }
 
 #define PREDEFINED_BLOCKS 16.
+#define F_SCRYPT_V_OFFSET float(SCRYPT_V_OFFSET)
 
 /* Variables */
 uniform sampler2D uSampler;
@@ -144,7 +120,7 @@ void main () {
         } else if ( mode == SCRYPT_MODE ) {
             float k = floor(and16(e(destination + 16.).y, 1023.) * 32.);
 
-            gl_FragColor = toRGBA(xor(e(offset), e(SCRYPT_V_OFFSET + k + o)));
+            gl_FragColor = toRGBA(xor(e(offset), e(F_SCRYPT_V_OFFSET + k + o)));
         } else {
             gl_FragColor = _(source + o);
         }
